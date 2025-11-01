@@ -3,15 +3,11 @@ import { ApiError } from "utils/ApiError";
 import streamifier from "streamifier";
 
 export class CloudinaryService {
-  /**
-   * Upload a file buffer to Cloudinary
-   */
   static async uploadFile(
     fileBuffer: Buffer,
     folder: string,
     resourceType: "image" | "raw" | "auto" = "auto",
     options?: {
-      format?: string;
       public_id?: string;
     }
   ): Promise<string> {
@@ -19,9 +15,8 @@ export class CloudinaryService {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder: folder,
+            folder,
             resource_type: resourceType,
-            format: options?.format,
             public_id: options?.public_id,
           },
           (error, result) => {
@@ -42,9 +37,6 @@ export class CloudinaryService {
     }
   }
 
-  /**
-   * Upload a resume file to Cloudinary
-   */
   static async uploadResume(
     fileBuffer: Buffer,
     userId: string,
@@ -52,13 +44,10 @@ export class CloudinaryService {
   ): Promise<string> {
     const folder = `resumes/${userId}`;
     return this.uploadFile(fileBuffer, folder, "raw", {
-      public_id: fileName.split(".")[0], // Use original filename without extension
+      public_id: fileName.replace(/\.[^/.]+$/, ""),
     });
   }
 
-  /**
-   * Upload an image to Cloudinary
-   */
   static async uploadImage(
     fileBuffer: Buffer,
     folder: string,
@@ -69,23 +58,17 @@ export class CloudinaryService {
     });
   }
 
-  /**
-   * Delete a file from Cloudinary by URL
-   */
   static async deleteFile(fileUrl: string): Promise<void> {
     try {
-      // Extract public_id from URL
       const urlParts = fileUrl.split("/");
       const fileWithExtension = urlParts[urlParts.length - 1];
       const publicId = urlParts
         .slice(urlParts.indexOf("upload") + 2, -1)
         .concat(fileWithExtension.split(".")[0])
         .join("/");
-
       await cloudinary.uploader.destroy(publicId);
     } catch (error) {
       console.error("Failed to delete file from Cloudinary:", error);
-      // Don't throw error, just log it
     }
   }
 }

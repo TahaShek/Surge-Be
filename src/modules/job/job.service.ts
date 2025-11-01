@@ -267,10 +267,9 @@ export const JobService = {
     if (!job) {
       throw new ApiError(404, "Job not found");
     }
-    const candidates = await JobCandidateModel.find({ jobId }).populate({
-      path: "talentSeekerId",
-      select: "firstName lastName avatar",
-    });
+    const candidates = await JobCandidateModel.find({ jobId }).populate(
+      "talentSeekerId"
+    );
 
     return new ApiResponse<IJobCandidate[]>(
       200,
@@ -440,7 +439,11 @@ export const JobService = {
     });
   },
 
-  async acceptCandidate(jobId: string, candidateId: string, talentFinderId: string) {
+  async acceptCandidate(
+    jobId: string,
+    candidateId: string,
+    talentFinderId: string
+  ) {
     // Find the job
     const job = await JobModel.findById(jobId);
     if (!job) {
@@ -452,17 +455,14 @@ export const JobService = {
     if (!candidate) {
       throw new ApiError(404, "Candidate not found");
     }
-
-    // Check if the candidate applied for the job
     if (candidate.jobId.toString() !== jobId) {
       throw new ApiError(400, "Candidate did not apply for this job");
     }
 
     // Update the candidate status
-    // candidate.status = "accepted";
+    candidate.status = "accepted";
     await candidate.save();
 
     return new ApiResponse(200, "Candidate accepted successfully");
   },
-
 };

@@ -6,7 +6,7 @@ import { ITalentSeeker } from "./talentSeeker.types";
 export interface IJobCandidate extends BaseDocument {
   jobId: Ref<IJob>;
   talentSeekerId: Ref<ITalentSeeker>;
-  status: "applied" | "screening" | "interviewing" | "offered" | "rejected" | "withdrawn" | "hired";
+  status: "applied" | "shortlisted" | "accepted" | "rejected" | "withdrawn" | "hired";
   coverLetter?: string;
   appliedAt: Date;
   notes?: string; // Internal notes from recruiter
