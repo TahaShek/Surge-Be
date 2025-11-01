@@ -106,12 +106,28 @@ const getAllJobsSchema = z.object({
   }),
 });
 
+// Apply to Job Schema
+const applyToJobSchema = z.object({
+  params: z.object({
+    jobId: z.string(),
+  }),
+  body: z.object({
+    coverLetter: z
+      .string()
+      .min(10, "Cover letter must be at least 10 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+  }),
+});
+
 // === TYPES ===
 export type CreateJobData = z.infer<typeof createJobSchema>["body"];
 export type UpdateJobData = z.infer<typeof updateJobSchema>["body"];
 export type PublishJobData = z.infer<typeof publishJobSchema>["body"];
 export type PublishJobParams = z.infer<typeof publishJobSchema>["params"];
 export type GetAllJobsQuery = z.infer<typeof getAllJobsSchema>["query"];
+export type ApplyToJobData = z.infer<typeof applyToJobSchema>["body"];
+export type ApplyToJobParams = z.infer<typeof applyToJobSchema>["params"];
 
 // === GROUPED SCHEMAS ===
 export const JobValidator = {
@@ -119,4 +135,5 @@ export const JobValidator = {
   updateJobSchema,
   publishJobSchema,
   getAllJobsSchema,
+  applyToJobSchema,
 };

@@ -3,6 +3,7 @@ import { JobController } from "./job.controller";
 import { verifyJWT } from "middlewares/auth.middleware";
 import { validateResource } from "utils";
 import { JobValidator } from "./job.validator";
+import { uploadResume } from "middlewares/upload.middleware";
 
 const router = Router();
 
@@ -32,6 +33,15 @@ router.post("/publish/:jobId", verifyJWT, JobController.publishJob);
 
 // Delete a job
 router.delete("/delete/:jobId", verifyJWT, JobController.deleteJob);
+
+// Apply to a job (with optional resume upload)
+router.post(
+  "/:jobId/apply",
+  verifyJWT,
+  uploadResume.single("resume"), // Optional resume upload
+  validateResource(JobValidator.applyToJobSchema),
+  JobController.applyToJob
+);
 
 /**
  * Public routes - accessible to anyone (job seekers)

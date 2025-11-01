@@ -13,6 +13,11 @@ import { ApiError } from "utils/ApiError";
 import { QueueService } from "services/queue.service";
 import { getPagination } from "utils/dbHelpers";
 import { buildJobQuery, buildJobSortOptions } from "./job.queryBuilder";
+import { IUser } from "../../@types/index.types";
+import { JobCandidateModel } from "models/jobCandidate.model";
+import { TalentSeekerModel } from "models/talentSeeker.model";
+import { CloudinaryService } from "../../services/cloudinary.service";
+import { IJobCandidate } from "../../@types/models/jobCandidate.types";
 
 export const JobService = {
   async createJob(
@@ -95,6 +100,7 @@ export const JobService = {
     }
 
     job.status = "active";
+    job.publishedAt = new Date();
     await job.save();
 
     return new ApiResponse<IJob>(
@@ -248,5 +254,83 @@ export const JobService = {
     );
   },
 
-  async applyToJob(jobId: string) {},
+  async applyToJob(
+    jobId: string,
+    userId: string,
+    applicationData: {
+      coverLetter?: string;
+    },
+    resumeFile?: Express.Multer.File
+  ) {
+    // Find the job
+    const job = await JobModel.findById(jobId);
+    if (!job) {
+      throw new ApiError(404, "Job not found");
+    }
+
+    // Check if job is active
+    if (job.status !== "active") {
+      throw new ApiError(400, "This job is not accepting applications");
+    }
+
+    // Find the talent seeker profile
+    const talentSeeker = await TalentSeekerModel.findOne({ userId });
+    if (!talentSeeker) {
+      throw new ApiError(
+        404,
+        "Please complete your talent seeker profile before applying to jobs"
+      );
+    }
+
+    // Check if already applied
+    const alreadyApplied = await JobCandidateModel.findOne({
+      jobId,
+      talentSeekerId: talentSeeker._id,
+    });
+
+    if (alreadyApplied) {
+      throw new ApiError(400, "You have already applied to this job");
+    }
+
+    // Upload resume to Cloudinary if provided
+    let resumeUrl: string | undefined;
+    if (resumeFile) {
+      resumeUrl = await CloudinaryService.uploadResume(
+        resumeFile.buffer,
+        `${userId}_${jobId}`,
+        resumeFile.originalname
+      );
+    } else {
+      // Use resume from talent seeker profile
+      resumeUrl = talentSeeker.resume;
+    }
+
+    // Create application
+    const application = await JobCandidateModel.create({
+      jobId,
+      talentSeekerId: talentSeeker._id,
+      coverLetter: applicationData.coverLetter,
+      resumeUrl,
+      status: "applied",
+      appliedAt: new Date(),
+    });
+
+    // Increment applicants count
+    await JobModel.findByIdAndUpdate(jobId, {
+      $inc: { applicantsCount: 1 },
+    });
+
+    // Populate the application data for response
+    const populatedApplication = await JobCandidateModel.findById(
+      application._id
+    )
+      .populate("jobId", "title company location jobType")
+      .populate("talentSeekerId", "userId title skills");
+
+    return new ApiResponse<IJobCandidate>(
+      201,
+      "Application submitted successfully",
+      populatedApplication!.toObject()
+    );
+  },
 };

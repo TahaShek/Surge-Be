@@ -9,7 +9,7 @@ export class CloudinaryService {
   static async uploadFile(
     fileBuffer: Buffer,
     folder: string,
-    resourceType: "image" | "raw" = "raw",
+    resourceType: "image" | "raw" | "auto" = "auto",
     options?: {
       format?: string;
       public_id?: string;
@@ -26,7 +26,9 @@ export class CloudinaryService {
           },
           (error, result) => {
             if (error) {
-              reject(new ApiError(500, `Cloudinary upload failed: ${error.message}`));
+              reject(
+                new ApiError(500, `Cloudinary upload failed: ${error.message}`)
+              );
             } else {
               resolve(result!.secure_url);
             }
@@ -49,7 +51,7 @@ export class CloudinaryService {
     fileName: string
   ): Promise<string> {
     const folder = `resumes/${userId}`;
-    return this.uploadFile(fileBuffer, folder, "raw", {
+    return this.uploadFile(fileBuffer, folder, "auto", {
       public_id: fileName.split(".")[0], // Use original filename without extension
     });
   }

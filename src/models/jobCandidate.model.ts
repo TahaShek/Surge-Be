@@ -19,9 +19,21 @@ const jobCandidateSchema = new mongoose.Schema<IJobCandidate>(
     },
     status: {
       type: String,
-      enum: ["applied", "screening", "interviewing", "offered", "rejected", "withdrawn", "hired"],
+      enum: [
+        "applied",
+        "shortlisted",
+        "accepted",
+        "rejected",
+        "withdrawn",
+        "hired",
+      ],
       default: "applied",
-      required: true,
+    },
+    acceptedAt: {
+      type: Date,
+    },
+    rejectedAt: {
+      type: Date,
     },
     coverLetter: {
       type: String,

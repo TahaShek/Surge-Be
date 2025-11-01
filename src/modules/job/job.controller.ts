@@ -80,4 +80,18 @@ export const JobController = {
     const response = await JobService.getJobById(req.params.jobId, req.talentFinderId);
     res.status(response.status).json(response);
   }),
+
+  /**
+   * Apply to a job
+   * POST /api/jobs/:jobId/apply
+   */
+  applyToJob: asyncHandler(async (req, res) => {
+    const response = await JobService.applyToJob(
+      req.params.jobId,
+      req.user!._id.toString(),
+      req.body,
+      req.file // Resume file from multer
+    );
+    res.status(response.status).json(response);
+  }),
 };

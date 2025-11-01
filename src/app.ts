@@ -15,6 +15,7 @@ declare global {
     interface Request {
       user?: IUser;
       talentFinderId: Types.ObjectId | string;
+      talentSeekerId: Types.ObjectId | string;
     }
   }
 }

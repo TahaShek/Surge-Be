@@ -11,6 +11,8 @@ export interface IJobCandidate extends BaseDocument {
   appliedAt: Date;
   notes?: string; // Internal notes from recruiter
   resumeUrl?: string; // Specific resume for this application
+  acceptedAt?: Date;
+  rejectedAt?: Date;
 }
 
 export interface JobCandidateDocument extends IJobCandidate {}

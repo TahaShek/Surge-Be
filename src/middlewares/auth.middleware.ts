@@ -1,7 +1,7 @@
 import { config } from "config/env";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
-import { TalentFinderModel, UserModel } from "models";
+import { TalentFinderModel, TalentSeekerModel, UserModel } from "models";
 import { ApiError, asyncHandler, t } from "utils";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
@@ -33,8 +33,15 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   if (!talentFinder) {
     throw new ApiError(403, t("AUTH.INVALID"));
   }
+  const talentSeeker = await TalentSeekerModel.findOne({
+    userId: user._id,
+  }).select("_id");
+  if (!talentSeeker) {
+    throw new ApiError(403, t("AUTH.INVALID"));
+  }
 
   req.talentFinderId = talentFinder._id;
+  req.talentSeekerId = talentSeeker._id;
   req.user = user;
 
   next();
