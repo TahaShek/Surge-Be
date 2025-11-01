@@ -142,7 +142,9 @@ export const AuthService = {
     await OtpService.deleteOtp(data.email);
 
     // OTP valid → Log user in
-    const user = await UserModel.findByEmail(data.email);
+    const user = await UserModel.findOne({ email: data.email }).populate(
+      "role"
+    );
     if (!user) throw new ApiError(404, t("USER.NOT_FOUND_AGAINST_EMAIL"));
 
     // Check if email is verified
@@ -153,7 +155,9 @@ export const AuthService = {
       );
     }
 
-    const tokens = await this.generateAccessAndRefreshToken(user);
+    const tokens = await this.generateAccessAndRefreshToken(
+      user as UserDocument
+    );
 
     return {
       response: new ApiResponse<{

@@ -20,6 +20,10 @@ import { CloudinaryService } from "../../services/cloudinary.service";
 import { IJobCandidate } from "../../@types/models/jobCandidate.types";
 import { JobBookmarksModel } from "models/jobBookmarks.model";
 import aiService from "../../services/ai.service";
+import { getSocketServer } from "../../config/socket";
+import { NotificationService } from "../../socket/services/NotificationService";
+import { TalentFinderModel } from "models/talentFinder.model";
+import logger from "../../config/logger";
 
 export const JobService = {
   async createJob(
@@ -399,6 +403,24 @@ export const JobService = {
       $inc: { applicantsCount: 1 },
     });
 
+    // CREATIVE FEATURE 2: Analyze cover letter if provided
+    let coverLetterAnalysis = null;
+    if (applicationData.coverLetter) {
+      try {
+        coverLetterAnalysis = await aiService.analyzeCoverLetter({
+          coverLetter: applicationData.coverLetter,
+          jobTitle: job.title,
+          jobDescription: job.description,
+          candidateSkills: talentSeeker.skills || [],
+        });
+        logger.info(
+          `Cover letter analyzed for application ${application._id}: Score ${coverLetterAnalysis.score}`
+        );
+      } catch (error) {
+        logger.error("Failed to analyze cover letter:", error);
+      }
+    }
+
     // Populate the application data for response
     const populatedApplication = await JobCandidateModel.findById(
       application._id
@@ -406,10 +428,193 @@ export const JobService = {
       .populate("jobId", "title company location jobType")
       .populate("talentSeekerId", "userId title skills");
 
-    return new ApiResponse<IJobCandidate>(
+    // Send notification to talent finder (job poster)
+    try {
+      const talentFinder = await TalentFinderModel.findById(
+        job.talentFinderId
+      ).populate("userId", "_id");
+
+      if (talentFinder && talentFinder.userId) {
+        const notificationService = new NotificationService();
+        const recruiterUserId = (talentFinder.userId as any)._id.toString();
+
+        await notificationService.sendInfo(
+          recruiterUserId,
+          "New Job Application",
+          `${talentSeeker.title || "A candidate"} has applied to your job: ${
+            job.title
+          }`,
+          {
+            jobId: job._id,
+            jobTitle: job.title,
+            applicantId: talentSeeker._id,
+            applicantName: talentSeeker.title,
+            applicantSkills: talentSeeker.skills,
+            applicationId: application._id,
+            coverLetterScore: coverLetterAnalysis?.score,
+            type: "job_application",
+          }
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail the application
+      logger.error("Failed to send job application notification:", error);
+    }
+
+    return new ApiResponse<any>(
       201,
       "Application submitted successfully",
-      populatedApplication!.toObject()
+      {
+        ...populatedApplication!.toObject(),
+        coverLetterAnalysis, // Include analysis in response
+      }
+    );
+  },
+
+  async updateApplicationStatus(
+    applicationId: string,
+    talentFinderId: string,
+    newStatus: "applied" | "shortlisted" | "accepted" | "rejected" | "withdrawn" | "hired",
+    notes?: string
+  ) {
+    // Find the application and populate necessary fields
+    const application = await JobCandidateModel.findById(applicationId)
+      .populate("jobId")
+      .populate({
+        path: "talentSeekerId",
+        populate: { path: "userId", select: "_id email" },
+      });
+
+    if (!application) {
+      throw new ApiError(404, "Application not found");
+    }
+
+    // Verify that the job belongs to this talent finder
+    const job = application.jobId as any;
+    if (job.talentFinderId.toString() !== talentFinderId) {
+      throw new ApiError(403, "You are not authorized to update this application");
+    }
+
+    // Store old status for notification
+    const oldStatus = application.status;
+
+    // Update application status
+    application.status = newStatus;
+    if (notes) {
+      application.notes = notes;
+    }
+
+    // Update timestamps based on status
+    if (newStatus === "accepted" && !application.acceptedAt) {
+      application.acceptedAt = new Date();
+    } else if (newStatus === "rejected" && !application.rejectedAt) {
+      application.rejectedAt = new Date();
+    }
+
+    await application.save();
+
+    // Send notification to talent seeker (candidate)
+    try {
+      const talentSeeker = application.talentSeekerId as any;
+      if (talentSeeker && talentSeeker.userId && talentSeeker.userId._id) {
+        const notificationService = new NotificationService();
+        const candidateUserId = talentSeeker.userId._id.toString();
+
+        // Determine notification type and message based on status
+        let title = "Application Status Updated";
+        let message = `Your application for "${job.title}" has been updated to: ${newStatus}`;
+        let notificationType: "info" | "success" | "warning" = "info";
+
+        switch (newStatus) {
+          case "shortlisted":
+            title = "You've Been Shortlisted! 🎉";
+            message = `Great news! You've been shortlisted for "${job.title}"`;
+            notificationType = "success";
+            break;
+          case "accepted":
+            title = "Application Accepted! 🎊";
+            message = `Congratulations! Your application for "${job.title}" has been accepted`;
+            notificationType = "success";
+            break;
+          case "hired":
+            title = "You're Hired! 🎉🎉";
+            message = `Amazing! You've been hired for "${job.title}"`;
+            notificationType = "success";
+            break;
+          case "rejected":
+            title = "Application Status Update";
+            message = `Thank you for your interest in "${job.title}". Unfortunately, we won't be moving forward at this time.`;
+            notificationType = "info";
+            break;
+          case "withdrawn":
+            title = "Application Withdrawn";
+            message = `Your application for "${job.title}" has been withdrawn`;
+            notificationType = "warning";
+            break;
+        }
+
+        // Send notification based on type
+        if (notificationType === "success") {
+          await notificationService.sendSuccess(
+            candidateUserId,
+            title,
+            message,
+            {
+              jobId: job._id,
+              jobTitle: job.title,
+              applicationId: application._id,
+              status: newStatus,
+              oldStatus: oldStatus,
+              notes: notes,
+              type: "application_status_update",
+            }
+          );
+        } else if (notificationType === "warning") {
+          await notificationService.sendWarning(
+            candidateUserId,
+            title,
+            message,
+            {
+              jobId: job._id,
+              jobTitle: job.title,
+              applicationId: application._id,
+              status: newStatus,
+              oldStatus: oldStatus,
+              notes: notes,
+              type: "application_status_update",
+            }
+          );
+        } else {
+          await notificationService.sendInfo(
+            candidateUserId,
+            title,
+            message,
+            {
+              jobId: job._id,
+              jobTitle: job.title,
+              applicationId: application._id,
+              status: newStatus,
+              oldStatus: oldStatus,
+              notes: notes,
+              type: "application_status_update",
+            }
+          );
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail the status update
+      logger.error("Failed to send application status notification:", error);
+    }
+
+    // Populate for response
+    const updatedApplication = await JobCandidateModel.findById(applicationId)
+      .populate("jobId", "title company location jobType")
+      .populate("talentSeekerId", "userId title skills");
+
+    return new ApiResponse<IJobCandidate>(
+      200,
+      "Application status updated successfully",
+      updatedApplication!.toObject()
     );
   },
 
@@ -908,6 +1113,82 @@ export const JobService = {
       "Applications retrieved successfully",
       jobCandidate
     );
+  },
+
+  /**
+   * CREATIVE FEATURE 1: AI-Powered Job Description Enhancement
+   * POST /api/jobs/enhance-description
+   */
+  async enhanceJobDescription(data: {
+    title: string;
+    description: string;
+    skills: string[];
+    jobType: string;
+    experienceLevel: string;
+    location?: string;
+    responsibilities?: string;
+    requirements?: string;
+  }) {
+    const enhancement = await aiService.enhanceJobDescription(data);
+
+    return new ApiResponse(
+      200,
+      "Job description enhanced successfully",
+      enhancement
+    );
+  },
+
+  /**
+   * CREATIVE FEATURE 3: AI Interview Questions Generator
+   * GET /api/jobs/applications/:applicationId/interview-questions
+   */
+  async generateInterviewQuestions(
+    applicationId: string,
+    talentFinderId: string
+  ) {
+    // Find the application with populated data
+    const application = await JobCandidateModel.findById(applicationId)
+      .populate({
+        path: "jobId",
+        select: "title description skills experienceLevel talentFinderId",
+      })
+      .populate({
+        path: "talentSeekerId",
+        select: "skills experience",
+      });
+
+    if (!application) {
+      throw new ApiError(404, "Application not found");
+    }
+
+    const job = application.jobId as any;
+
+    // Verify that the job belongs to this talent finder
+    if (job.talentFinderId.toString() !== talentFinderId) {
+      throw new ApiError(
+        403,
+        "You are not authorized to generate questions for this application"
+      );
+    }
+
+    const talentSeeker = application.talentSeekerId as any;
+
+    // Generate interview questions using AI
+    const questions = await aiService.generateInterviewQuestions({
+      jobTitle: job.title,
+      jobDescription: job.description,
+      requiredSkills: job.skills || [],
+      experienceLevel: job.experienceLevel,
+      candidateSkills: talentSeeker.skills || [],
+      candidateExperience: talentSeeker.experience || 0,
+    });
+
+    return new ApiResponse(200, "Interview questions generated successfully", {
+      applicationId: application._id,
+      jobTitle: job.title,
+      candidateName: talentSeeker.title || "Candidate",
+      questions,
+    });
   },
 };
 

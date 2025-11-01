@@ -120,6 +120,53 @@ const applyToJobSchema = z.object({
   }),
 });
 
+const updateApplicationStatusSchema = z.object({
+  params: z.object({
+    applicationId: z.string(),
+  }),
+  body: z.object({
+    status: z.enum([
+      "applied",
+      "shortlisted",
+      "accepted",
+      "rejected",
+      "withdrawn",
+      "hired",
+    ]),
+    notes: z
+      .string()
+      .max(500, "Notes must not exceed 500 characters")
+      .optional(),
+  }),
+});
+
+// AI Feature 1: Enhance Job Description
+const enhanceJobDescriptionSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, "Job title is required"),
+    description: z.string().min(1, "Job description is required"),
+    skills: z.array(z.string()).default([]),
+    jobType: z.enum([
+      "full-time",
+      "part-time",
+      "contract",
+      "freelance",
+      "internship",
+    ]),
+    experienceLevel: z.enum(["entry", "mid", "senior", "lead"]),
+    location: z.string().optional(),
+    responsibilities: z.string().optional(),
+    requirements: z.string().optional(),
+  }),
+});
+
+// AI Feature 3: Generate Interview Questions
+const generateInterviewQuestionsSchema = z.object({
+  params: z.object({
+    applicationId: z.string(),
+  }),
+});
+
 // === TYPES ===
 export type CreateJobData = z.infer<typeof createJobSchema>["body"];
 export type UpdateJobData = z.infer<typeof updateJobSchema>["body"];
@@ -128,6 +175,15 @@ export type PublishJobParams = z.infer<typeof publishJobSchema>["params"];
 export type GetAllJobsQuery = z.infer<typeof getAllJobsSchema>["query"];
 export type ApplyToJobData = z.infer<typeof applyToJobSchema>["body"];
 export type ApplyToJobParams = z.infer<typeof applyToJobSchema>["params"];
+export type UpdateApplicationStatusData = z.infer<
+  typeof updateApplicationStatusSchema
+>["body"];
+export type UpdateApplicationStatusParams = z.infer<
+  typeof updateApplicationStatusSchema
+>["params"];
+export type EnhanceJobDescriptionData = z.infer<
+  typeof enhanceJobDescriptionSchema
+>["body"];
 
 // === GROUPED SCHEMAS ===
 export const JobValidator = {
@@ -136,4 +192,7 @@ export const JobValidator = {
   publishJobSchema,
   getAllJobsSchema,
   applyToJobSchema,
+  updateApplicationStatusSchema,
+  enhanceJobDescriptionSchema,
+  generateInterviewQuestionsSchema,
 };

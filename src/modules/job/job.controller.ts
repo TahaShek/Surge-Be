@@ -68,7 +68,11 @@ export const JobController = {
    * GET /api/jobs
    */
   getAllJobs: asyncHandler(async (req: Request, res: Response) => {
-    const response = await JobService.getAllJobs(req.talentFinderId, req.query, req.user as IUser);
+    const response = await JobService.getAllJobs(
+      req.talentFinderId,
+      req.query,
+      req.user as IUser
+    );
     res.status(response.status).json(response);
   }),
 
@@ -94,6 +98,20 @@ export const JobController = {
       req.user!._id.toString(),
       req.body,
       req.file // Resume file from multer
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Update application status (for talent finders/recruiters)
+   * PATCH /api/jobs/applications/:applicationId/status
+   */
+  updateApplicationStatus: asyncHandler(async (req, res) => {
+    const response = await JobService.updateApplicationStatus(
+      req.params.applicationId,
+      req.talentFinderId.toString(),
+      req.body.status,
+      req.body.notes
     );
     res.status(response.status).json(response);
   }),
@@ -173,8 +191,27 @@ export const JobController = {
     res.status(response.status).json(response);
   }),
   getMyApplications: asyncHandler(async (req, res) => {
-    const response = await JobService.getMyApplications(
-      req.user?._id
+    const response = await JobService.getMyApplications(req.user?._id);
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * CREATIVE FEATURE 1: Enhance job description with AI
+   * POST /api/jobs/enhance-description
+   */
+  enhanceJobDescription: asyncHandler(async (req, res) => {
+    const response = await JobService.enhanceJobDescription(req.body);
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * CREATIVE FEATURE 3: Generate interview questions for an application
+   * GET /api/jobs/applications/:applicationId/interview-questions
+   */
+  generateInterviewQuestions: asyncHandler(async (req, res) => {
+    const response = await JobService.generateInterviewQuestions(
+      req.params.applicationId,
+      req.talentFinderId.toString()
     );
     res.status(response.status).json(response);
   }),

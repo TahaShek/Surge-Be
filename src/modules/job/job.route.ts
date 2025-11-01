@@ -45,11 +45,43 @@ router.post(
   JobController.createJob
 );
 
+// AI FEATURE 1: Enhance job description with AI
+router.post(
+  "/enhance-description",
+  verifyJWT,
+  validateResource(JobValidator.enhanceJobDescriptionSchema),
+  JobController.enhanceJobDescription
+);
+
+// AI FEATURE 3: Generate interview questions for an application
+router.get(
+  "/applications/:applicationId/interview-questions",
+  verifyJWT,
+  validateResource(JobValidator.generateInterviewQuestionsSchema),
+  JobController.generateInterviewQuestions
+);
+
+// Update application status (for recruiters)
+router.patch(
+  "/applications/:applicationId/status",
+  verifyJWT,
+  validateResource(JobValidator.updateApplicationStatusSchema),
+  JobController.updateApplicationStatus
+);
+
 // Publish a draft job (activate it)
 router.post("/publish/:jobId", verifyJWT, JobController.publishJob);
 
 // Delete a job
 router.delete("/delete/:jobId", verifyJWT, JobController.deleteJob);
+
+// Update application status (for recruiters)
+router.patch(
+  "/applications/:applicationId/status",
+  verifyJWT,
+  validateResource(JobValidator.updateApplicationStatusSchema),
+  JobController.updateApplicationStatus
+);
 
 // Get match score for a specific job
 router.get("/:jobId/match-score", verifyJWT, JobController.getMatchScore);
@@ -97,7 +129,7 @@ router.get(
   JobController.getAppliedCandidates
 );
 router.put(
-  "/:jobId/update-status",
+  "/:id/update-status",
   verifyJWT,
   JobController.updateCandidateStatus
 );
