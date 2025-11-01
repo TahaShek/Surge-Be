@@ -12,6 +12,14 @@ const router = Router();
  * NOTE: These must come BEFORE parameterized routes like /:jobId
  */
 
+// Get recommended jobs for talent seeker
+router.get(
+  "/recommendations",
+  verifyJWT,
+  validateResource(JobValidator.getAllJobsSchema),
+  JobController.getRecommendations
+);
+
 // Get all bookmarked jobs
 router.get(
   "/bookmarks",
@@ -42,6 +50,9 @@ router.post("/publish/:jobId", verifyJWT, JobController.publishJob);
 // Delete a job
 router.delete("/delete/:jobId", verifyJWT, JobController.deleteJob);
 
+// Get match score for a specific job
+router.get("/:jobId/match-score", verifyJWT, JobController.getMatchScore);
+
 // Apply to a job (with optional resume upload)
 router.post(
   "/:jobId/apply",
@@ -64,6 +75,7 @@ router.delete("/:jobId/bookmark", verifyJWT, JobController.removeBookmark);
 // Get all active jobs with filters (public job search)
 router.get(
   "/",
+  verifyJWT,
   validateResource(JobValidator.getAllJobsSchema),
   JobController.getAllJobs
 );
@@ -77,7 +89,16 @@ router.put(
 );
 
 // Get a single job by ID (MUST be last - catches all remaining GET requests)
-router.get("/:jobId", JobController.getJobById);
-router.get("/:jobId/applied-candidates", JobController.getAppliedCandidates);
+router.get("/:jobId", verifyJWT, JobController.getJobById);
+router.get(
+  "/:jobId/applied-candidates",
+  verifyJWT,
+  JobController.getAppliedCandidates
+);
+router.put(
+  "/:jobId/update-status",
+  verifyJWT,
+  JobController.updateCandidateStatus
+);
 
 export default router;

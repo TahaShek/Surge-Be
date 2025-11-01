@@ -7,8 +7,8 @@ dotenv.config();
 
 export const config: AppConfig = {
   MAIN: {
-    port: Number(process.env.PORT) || 5000,
-    // port: 8081,
+    // port: Number(process.env.PORT) || 5000,
+    port: 8081,
     nodeEnv: process.env.NODE_ENV || "development",
     mongoUri: process.env.MONGO_URI || "",
     dbName: process.env.DB_NAME,

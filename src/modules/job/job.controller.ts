@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "utils/asyncHandler";
 import { JobService } from "./job.service";
+import { IUser } from "../../@types/index.types";
 
 export const JobController = {
   /**
@@ -67,7 +68,7 @@ export const JobController = {
    * GET /api/jobs
    */
   getAllJobs: asyncHandler(async (req: Request, res: Response) => {
-    const response = await JobService.getAllJobs(req.query);
+    const response = await JobService.getAllJobs(req.talentFinderId, req.query, req.user as IUser);
     res.status(response.status).json(response);
   }),
 
@@ -132,10 +133,42 @@ export const JobController = {
     );
     res.status(response.status).json(response);
   }),
+
+  /**
+   * Calculate match score for a specific job
+   * GET /api/jobs/:jobId/match-score
+   */
+  getMatchScore: asyncHandler(async (req, res) => {
+    const response = await JobService.calculateJobMatchScore(
+      req.params.jobId,
+      req.user!._id.toString()
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Get recommended jobs based on talent seeker profile
+   * GET /api/jobs/recommendations
+   */
+  getRecommendations: asyncHandler(async (req, res) => {
+    const response = await JobService.getRecommendedJobs(
+      req.user!._id.toString(),
+      req.query
+    );
+    res.status(response.status).json(response);
+  }),
+
   getAppliedCandidates: asyncHandler(async (req, res) => {
     const response = await JobService.getAppliedCandidates(
       req.params.jobId,
       req.talentFinderId
+    );
+    res.status(response.status).json(response);
+  }),
+  updateCandidateStatus: asyncHandler(async (req, res) => {
+    const response = await JobService.updateCandidateStatus(
+      req.params.id,
+      req.body.status
     );
     res.status(response.status).json(response);
   }),
