@@ -7,6 +7,7 @@ import { config } from "./config/env";
 import { getRedisConnection, closeRedisConnection } from "./queues/connection";
 import { bootstrapQueues } from "queues";
 import { socketManager } from "./socket";
+import "./consumer/index"; // Import consumers to initialize them
 
 const startServer = async () => {
   try {
