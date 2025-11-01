@@ -6,7 +6,8 @@ export const TalentSeekerController = {
   createOrUpdateProfile: asyncHandler(async (req, res) => {
     const response = await TalentSeekerService.createOrUpdateProfile(
       req.user!._id.toString(),
-      req.body
+      req.body,
+      req.file // Resume file from multer
     );
 
     return res.status(response.status).json(response);

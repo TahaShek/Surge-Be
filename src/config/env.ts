@@ -7,8 +7,8 @@ dotenv.config();
 
 export const config: AppConfig = {
   MAIN: {
-    port: Number(process.env.PORT) || 5000,
-    // port: 8081,
+    // port: Number(process.env.PORT) || 5000,
+    port: 8081,
     nodeEnv: process.env.NODE_ENV || "development",
     mongoUri: process.env.MONGO_URI || "",
     dbName: process.env.DB_NAME,
@@ -91,5 +91,10 @@ export const config: AppConfig = {
     user: process.env.EMAIL_USER || "",
     password: process.env.EMAIL_PASSWORD || "",
     fromName: process.env.EMAIL_FROM_NAME || "Nexus Backend",
+  },
+  CLOUDINARY: {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
+    api_key: process.env.CLOUDINARY_API_KEY || "",
+    api_secret: process.env.CLOUDINARY_API_SECRET || "",
   },
 };

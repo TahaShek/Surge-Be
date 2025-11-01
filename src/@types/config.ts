@@ -68,6 +68,12 @@ export interface EmailConfig {
   fromName: string;
 }
 
+export interface CloudinaryConfig {
+  cloud_name: string;
+  api_key: string;
+  api_secret: string;
+}
+
 export interface AppConfig {
   MAIN: {
     port: number;
@@ -88,4 +94,5 @@ export interface AppConfig {
   GOOGLE: GoogleConfig;
   SOCKETIO: SocketIOConfig;
   EMAIL: EmailConfig;
+  CLOUDINARY: CloudinaryConfig;
 }

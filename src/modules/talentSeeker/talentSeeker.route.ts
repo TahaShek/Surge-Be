@@ -3,6 +3,7 @@ import { verifyJWT } from "middlewares/auth.middleware";
 import { validateResource } from "utils";
 import { TalentSeekerValidator } from "./talentSeeker.validator";
 import { TalentSeekerController } from "./talentSeeker.controller";
+import { uploadResume } from "middlewares/upload.middleware";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 router.post(
   "/profile",
   verifyJWT,
+  uploadResume.single("resume"), // Accept resume file upload
   validateResource(TalentSeekerValidator.createTalentSeekerSchema),
   TalentSeekerController.createOrUpdateProfile
 );
@@ -17,6 +19,7 @@ router.post(
 router.put(
   "/profile",
   verifyJWT,
+  uploadResume.single("resume"), // Accept resume file upload
   validateResource(TalentSeekerValidator.updateTalentSeekerSchema),
   TalentSeekerController.createOrUpdateProfile
 );

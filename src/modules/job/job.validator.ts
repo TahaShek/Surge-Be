@@ -37,8 +37,8 @@ const updateJobSchema = z.object({
   body: z.object({
     title: z.string().min(1).max(200).optional(),
     description: z.string().min(1).max(5000).optional(),
-    requirements: z.array(z.string()).optional(),
-    responsibilities: z.array(z.string()).optional(),
+    requirements: z.string().optional(),
+    responsibilities: z.string().optional(),
     skills: z.array(z.string()).optional(),
     jobType: z
       .enum(["full-time", "part-time", "contract", "freelance", "internship"])

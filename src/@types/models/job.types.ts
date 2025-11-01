@@ -24,6 +24,7 @@ export interface IJob extends BaseDocument {
   viewsCount?: number;
   jobCode?: string;
   totalPositions?: number;
+  publishedAt?: Date;
 }
 
 export interface JobDocument extends IJob {}

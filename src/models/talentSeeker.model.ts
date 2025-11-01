@@ -97,7 +97,6 @@ const talentSeekerSchema = new mongoose.Schema<ITalentSeeker>(
   }
 );
 
-
 export const TalentSeekerModel = mongoose.model<
   ITalentSeeker,
   mongoose.Model<ITalentSeeker> & TalentSeekerModelType

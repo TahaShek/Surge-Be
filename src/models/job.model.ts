@@ -74,6 +74,7 @@ const jobSchema = new mongoose.Schema<IJob>(
     },
     applicantsCount: { type: Number, default: 0 },
     viewsCount: { type: Number, default: 0 },
+    publishedAt: { type: Date },
   },
   {
     timestamps: true,

@@ -6,12 +6,32 @@ import type {
 import { ApiError, ApiResponse } from "utils";
 import { ITalentSeeker } from "../../@types/models/talentSeeker.types";
 import mongoose from "mongoose";
+import { CloudinaryService } from "../../services/cloudinary.service";
 
 export const TalentSeekerService = {
   // Create or Update TalentSeeker Profile
-  async createOrUpdateProfile(userId: string, data: CreateTalentSeekerData) {
+  async createOrUpdateProfile(
+    userId: string,
+    data: CreateTalentSeekerData,
+    resumeFile?: Express.Multer.File
+  ) {
     // Check if profile already exists
     let profile = await TalentSeekerModel.findOne({ userId });
+
+    // Upload resume to Cloudinary if provided
+    if (resumeFile) {
+      const resumeUrl = await CloudinaryService.uploadResume(
+        resumeFile.buffer,
+        userId,
+        resumeFile.originalname
+      );
+      data.resume = resumeUrl;
+
+      // Delete old resume from Cloudinary if updating
+      if (profile?.resume) {
+        await CloudinaryService.deleteFile(profile.resume);
+      }
+    }
 
     if (profile) {
       // Update existing profile

@@ -1,6 +1,7 @@
 import { FilterQuery } from "mongoose";
 import { IJob } from "../../@types/models/job.types";
 import { GetAllJobsQuery } from "./job.validator";
+import { only } from "node:test";
 
 export class JobQueryBuilder {
   private query: FilterQuery<IJob> = {};
@@ -141,6 +142,7 @@ export function buildJobQuery(
   queryParams: GetAllJobsQuery,
   options?: {
     talentFinderId?: string;
+    onlyActive?: boolean;
     includeExpired?: boolean;
     defaultStatus?: string | string[];
   }
@@ -177,16 +179,20 @@ export function buildJobQuery(
   }
 
   // Handle status
-  if (statuses && statuses.length > 0) {
-    builder.addStatusFilter(statuses);
-  } else if (options?.defaultStatus) {
-    builder.addStatusFilter(options.defaultStatus);
+  if (options?.onlyActive) {
+    builder.addStatusFilter("active");
+  } else {
+    if (statuses && statuses.length > 0) {
+      builder.addStatusFilter(statuses);
+    } else if (options?.defaultStatus) {
+      builder.addStatusFilter(options.defaultStatus);
+    }
   }
 
   // Deadline (expired jobs)
-  if (!options?.includeExpired) {
-    builder.addDeadlineFilter(false);
-  }
+  //   if (!options?.includeExpired) {
+  //     builder.addDeadlineFilter(false);
+  //   }
 
   return builder.build();
 }

@@ -76,7 +76,8 @@ export const JobController = {
    * GET /api/jobs/:jobId
    */
   getJobById: asyncHandler(async (req: Request, res: Response) => {
-    const response = await JobService.getJobById(req.params.jobId);
+
+    const response = await JobService.getJobById(req.params.jobId, req.talentFinderId);
     res.status(response.status).json(response);
   }),
 };

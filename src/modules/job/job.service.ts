@@ -41,9 +41,12 @@ export const JobService = {
       _id: jobId,
       talentFinderId,
     });
-    
+
     if (!job) {
-      throw new ApiError(404, "Job not found or you don't have permission to update it");
+      throw new ApiError(
+        404,
+        "Job not found or you don't have permission to update it"
+      );
     }
 
     // Update job fields
@@ -188,6 +191,7 @@ export const JobService = {
     const filter = buildJobQuery(queryParams, {
       defaultStatus: "active",
       includeExpired: false,
+      onlyActive: true,
     });
 
     // Build sort options
@@ -218,25 +222,31 @@ export const JobService = {
   /**
    * Get single job by ID
    */
-  async getJobById(jobId: string) {
+  async getJobById(jobId: string, talentFidnerId: string | Types.ObjectId) {
     const job = await JobModel.findById(jobId)
-      .populate(
-        "talentFinderId",
-        "company location industry website description"
-      )
+      .populate({
+        path: "talentFinderId",
+        select: "company location industry website description userId",
+        populate: {
+          path: "userId",
+          select: "firstName lastName avatar", // fields from User model
+        },
+      })
       .lean();
 
     if (!job) {
       throw new ApiError(404, "Job not found");
     }
 
-    // Increment view count
-    await JobModel.findByIdAndUpdate(jobId, { $inc: { viewsCount: 1 } });
-
+    if (job.talentFinderId.toString() !== talentFidnerId.toString()) {
+      await JobModel.findByIdAndUpdate(jobId, { $inc: { viewsCount: 1 } });
+    }
     return new ApiResponse<IJob>(
       200,
       "Job retrieved successfully",
       job as IJob
     );
   },
+
+  async applyToJob(jobId: string) {},
 };
