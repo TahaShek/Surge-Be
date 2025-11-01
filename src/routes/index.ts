@@ -4,7 +4,7 @@ import AuthRouter from "../modules/auth/auth.route";
 import NotificationRouter from "../modules/notifications/notification.route";
 import TalentSeekerRouter from "../modules/talentSeeker/talentSeeker.route";
 import TalentFinderRouter from "../modules/talentFinder/talentFinder.route";
-import JobRouter from "../modules/job/job.routes";
+import JobRouter from "../modules/job/job.route";
 
 const router = Router();
 

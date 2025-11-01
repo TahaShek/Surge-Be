@@ -76,15 +76,33 @@ const publishJobSchema = z.object({
   }),
 });
 
+const getAllJobsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    search: z.string().optional(),
+    jobType: z
+      .enum(["full-time", "part-time", "contract", "freelance", "internship"])
+      .optional(),
+    experienceLevel: z.enum(["entry", "mid", "senior", "lead"]).optional(),
+    location: z.string().optional(),
+    jobWorkingType: z.enum(["remote", "on-site", "hybrid"]).optional(),
+    salaryMin: z.string().optional(),
+    salaryMax: z.string().optional(),
+  }),
+});
+
 // === TYPES ===
 export type CreateJobData = z.infer<typeof createJobSchema>["body"];
 export type UpdateJobData = z.infer<typeof updateJobSchema>["body"];
 export type PublishJobData = z.infer<typeof publishJobSchema>["body"];
 export type PublishJobParams = z.infer<typeof publishJobSchema>["params"];
+export type GetAllJobsQuery = z.infer<typeof getAllJobsSchema>["query"];
 
 // === GROUPED SCHEMAS ===
 export const JobValidator = {
   createJobSchema,
   updateJobSchema,
   publishJobSchema,
+  getAllJobsSchema,
 };

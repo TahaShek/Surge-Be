@@ -1,22 +1,82 @@
+import { Request, Response } from "express";
 import { asyncHandler } from "utils/asyncHandler";
 import { JobService } from "./job.service";
-import { PublishJobParams } from "./job.validator";
 
 export const JobController = {
+  /**
+   * Create a new job (draft status)
+   * POST /api/jobs
+   */
   createJob: asyncHandler(async (req, res) => {
     const response = await JobService.createJob(req.talentFinderId, req.body);
-
-    return res.status(response.status).json(response);
+    res.status(response.status).json(response);
   }),
-  publishJob: asyncHandler(async (req, res) => {
-    const response = await JobService.publishJob(
-      req.params as PublishJobParams,
+
+  /**
+   * Update an existing job
+   * PUT /api/jobs/:jobId
+   */
+  updateJob: asyncHandler(async (req, res) => {
+    const response = await JobService.updateJob(
+      req.params.jobId,
+      req.talentFinderId,
       req.body
     );
-    return res.status(response.status).json(response);
+    res.status(response.status).json(response);
   }),
+
+  /**
+   * Publish a draft job (activate it)
+   * POST /api/jobs/:jobId/publish
+   */
+  publishJob: asyncHandler(async (req, res) => {
+    const response = await JobService.publishJob(
+      req.talentFinderId,
+      { jobId: req.params.jobId },
+      req.body
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Delete a job (soft delete by setting status to closed)
+   * DELETE /api/jobs/:jobId
+   */
   deleteJob: asyncHandler(async (req, res) => {
-    const response = await JobService.deleteJob(req.params.jobId);
-    return res.status(response.status).json(response);
+    const response = await JobService.deleteJob(
+      req.params.jobId,
+      req.talentFinderId
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Get all jobs posted by the authenticated talent finder
+   * GET /api/jobs/my-jobs
+   */
+  getMyJobs: asyncHandler(async (req, res) => {
+    const response = await JobService.getJobsByTalentFinder(
+      req.talentFinderId,
+      req.query
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Get all public active jobs with filters (for job seekers)
+   * GET /api/jobs
+   */
+  getAllJobs: asyncHandler(async (req: Request, res: Response) => {
+    const response = await JobService.getAllJobs(req.query);
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Get a single job by ID
+   * GET /api/jobs/:jobId
+   */
+  getJobById: asyncHandler(async (req: Request, res: Response) => {
+    const response = await JobService.getJobById(req.params.jobId);
+    res.status(response.status).json(response);
   }),
 };
