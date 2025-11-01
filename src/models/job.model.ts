@@ -39,6 +39,10 @@ const jobSchema = new mongoose.Schema<IJob>(
       enum: ["full-time", "part-time", "contract", "freelance", "internship"],
       required: true,
     },
+    totalPositions: {
+      type: Number,
+      default: 1,
+    },
     experienceLevel: {
       type: String,
       enum: ["entry", "mid", "senior", "lead"],
@@ -86,15 +90,20 @@ jobSchema.index({ createdAt: -1 });
 jobSchema.pre<JobDocument>("validate", async function (next) {
   if (this.jobCode) return next(); // Skip if already set
 
-  const lastJob = await mongoose.model("Job").findOne({}, { jobCode: 1 }).sort({ createdAt: -1 });
-  const lastNumber = lastJob?.jobCode ? parseInt(lastJob.jobCode.split("-")[1]) : 0;
+  const lastJob = await mongoose
+    .model("Job")
+    .findOne({}, { jobCode: 1 })
+    .sort({ createdAt: -1 });
+  const lastNumber = lastJob?.jobCode
+    ? parseInt(lastJob.jobCode.split("-")[1])
+    : 0;
   const newNumber = (lastNumber + 1).toString().padStart(4, "0");
 
   this.jobCode = `JOB-${newNumber}`;
   next();
 });
 
-export const JobModel = mongoose.model<IJob, mongoose.Model<IJob> & JobModelType>(
-  "Job",
-  jobSchema
-);
+export const JobModel = mongoose.model<
+  IJob,
+  mongoose.Model<IJob> & JobModelType
+>("Job", jobSchema);

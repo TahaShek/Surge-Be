@@ -23,6 +23,7 @@ export interface IJob extends BaseDocument {
   applicantsCount?: number;
   viewsCount?: number;
   jobCode?: string;
+  totalPositions?: number;
 }
 
 export interface JobDocument extends IJob {}

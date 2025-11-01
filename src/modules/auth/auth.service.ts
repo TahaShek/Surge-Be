@@ -45,7 +45,7 @@ export const AuthService = {
     const user = await UserModel.create({
       ...data,
       avatar: avatarUrl,
-      roles: roles.map((r) => r._id),
+      role: roles.map((r) => r._id),
     });
 
     // Generate email verification token

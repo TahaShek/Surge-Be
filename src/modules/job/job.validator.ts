@@ -26,6 +26,7 @@ const createJobSchema = z.object({
       })
       .optional(),
     benefits: z.array(z.string()).optional(),
+    totalPositions: z.number().min(1).default(1),
     // applicationDeadline: z.string().datetime().optional().or(z.date().optional()),
     // status: z.enum(["draft", "active", "closed", "filled"]).default("draft"),
   }),
