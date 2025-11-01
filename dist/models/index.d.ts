@@ -1,0 +1,12 @@
+export * from "./user.model";
+export * from "./role.model";
+export * from "./permissions.model";
+export * from "./verification-token.model";
+export * from "./location.model";
+export * from "./route.model";
+export * from "./job.model";
+export * from "./talentFinder.model";
+export * from "./talentSeeker.model";
+export * from "./jobCandidate.model";
+export * from "./jobBookmarks.model";
+//# sourceMappingURL=index.d.ts.map
