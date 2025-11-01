@@ -20,13 +20,6 @@ import { createEventRateLimit } from "../middlewares/rateLimit.middleware";
 // Create rate limiter for messages (max 30 messages per minute)
 const messageRateLimit = createEventRateLimit(30, 60000);
 
-/**
- * Message event handlers for Socket.IO
- */
-
-/**
- * Handles sending messages to a room
- */
 export const handleSendMessage = withAuth(
   async (
     socket: AuthenticatedSocket,
@@ -106,7 +99,7 @@ async function processSendMessage(
       id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       roomId,
       userId,
-      username: user.name || user.email || "Unknown",
+      username: user.firstName || user.email || "Unknown",
       content: content.trim(),
       timestamp: Date.now(),
       type,
@@ -137,9 +130,6 @@ async function processSendMessage(
   }
 }
 
-/**
- * Handles typing start event
- */
 export const handleTypingStart = withAuth(
   withValidation(
     socketValidationSchemas.typing,
@@ -147,7 +137,7 @@ export const handleTypingStart = withAuth(
       try {
         const { roomId } = data;
         const userId = socket.data.userId!;
-        const username = socket.data.user!.name || socket.data.user!.email || "Unknown";
+        const username = socket.data.user!.firstName || socket.data.user!.email || "Unknown";
 
         // Check if user is in the room
         if (!isUserInRoom(userId, roomId)) {
@@ -171,9 +161,6 @@ export const handleTypingStart = withAuth(
   )
 );
 
-/**
- * Handles typing stop event
- */
 export const handleTypingStop = withAuth(
   withValidation(
     socketValidationSchemas.typing,
@@ -181,7 +168,7 @@ export const handleTypingStop = withAuth(
       try {
         const { roomId } = data;
         const userId = socket.data.userId!;
-        const username = socket.data.user!.name || socket.data.user!.email || "Unknown";
+        const username = socket.data.user!.firstName || socket.data.user!.email || "Unknown";
 
         // Check if user is in the room
         if (!isUserInRoom(userId, roomId)) {
@@ -205,9 +192,6 @@ export const handleTypingStop = withAuth(
   )
 );
 
-/**
- * Handles message history request
- */
 export const handleGetMessageHistory = withAuth(async (
   socket: AuthenticatedSocket,
   data: { roomId: string; limit?: number; before?: number },

@@ -1,7 +1,12 @@
 import mongoose from "mongoose";
-import { UserModel, VerificationTokenModel } from "models";
+import {
+  RoleModel,
+  TalentFinderModel,
+  TalentSeekerModel,
+  UserModel,
+  VerificationTokenModel,
+} from "models";
 import type {
-  LinkedInAuthCallbackQuery,
   UserLoginData,
   UserLoginWithOtpData,
   UserOtpData,
@@ -16,10 +21,12 @@ import { ApiError, ApiResponse } from "utils";
 import { IUser, UserDocument } from "../../@types/models/user.types";
 import { t } from "utils";
 import { OtpService } from "services/otp.service";
-import { EmailService } from "services/email.service";
-import axios from "axios";
 import { config } from "config/env";
 import jwt from "jsonwebtoken";
+import { QueueService } from "services/queue.service";
+import { google } from "googleapis";
+import crypto from "crypto";
+import { UserRoleEnum } from "../../@types/enum";
 
 export const AuthService = {
   async register(data: UserRegisterData) {
@@ -28,22 +35,53 @@ export const AuthService = {
     if (doesUserExist) {
       throw new ApiError(409, t("USER.EXISTS"));
     }
+    const styles = ["bottts", "adventurer", "shapes", "identicon", "pixel-art"];
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
 
-    const user = await UserModel.create(data);
+    const seed = data.email || crypto.randomBytes(8).toString("hex");
+    const avatarUrl = `https://api.dicebear.com/9.x/${randomStyle}/svg?seed=${encodeURIComponent(
+      seed
+    )}`;
+
+    const roles = await RoleModel.find({
+      name: { $in: [UserRoleEnum.TALENT_FINDER, UserRoleEnum.TALENT_SEEKER] },
+    });
+
+    // 🧍‍♂️ Create user with both roles
+    const user = await UserModel.create({
+      ...data,
+      avatar: avatarUrl,
+      role: roles.map((r) => r._id),
+    });
+    await Promise.all([
+      TalentFinderModel.create({
+        userId: user._id,
+      }),
+      TalentSeekerModel.create({
+        userId: user._id,
+      }),
+    ]);
 
     // Generate email verification token
-    const verificationToken = await VerificationTokenModel.createVerificationToken(
-      user._id as mongoose.Types.ObjectId,
-      'email_verification'
-    );
+    const verificationToken =
+      await VerificationTokenModel.createVerificationToken(
+        user._id as mongoose.Types.ObjectId,
+        "email_verification"
+      );
 
     // Send verification email (async - don't wait)
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/verify-email?token=${verificationToken.token}`;
-    await EmailService.sendVerificationEmail(user.email, user.name, verificationUrl);
+    const verificationUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/auth/verify-email?token=${verificationToken.token}`;
+    await QueueService.getQueue("otpQueue")?.add("sendVerificationEmail", {
+      email: user.email,
+      name: user.firstName,
+      verificationUrl: verificationUrl,
+    });
 
     return new ApiResponse<IUser>(
-      201, 
-      "Registration successful! Please check your email to verify your account.", 
+      201,
+      "Registration successful! Please check your email to verify your account.",
       user.toObject()
     );
   },
@@ -62,7 +100,10 @@ export const AuthService = {
 
     // Check if email is verified
     if (!user.isVerified) {
-      throw new ApiError(403, "Please verify your email before logging in. Check your inbox for the verification link.");
+      throw new ApiError(
+        403,
+        "Please verify your email before logging in. Check your inbox for the verification link."
+      );
     }
 
     user.lastLoginAt = new Date();
@@ -101,18 +142,28 @@ export const AuthService = {
     await OtpService.deleteOtp(data.email);
 
     // OTP valid → Log user in
-    const user = await UserModel.findByEmail(data.email);
+    const user = await UserModel.findOne({ email: data.email }).populate(
+      "role"
+    );
     if (!user) throw new ApiError(404, t("USER.NOT_FOUND_AGAINST_EMAIL"));
 
     // Check if email is verified
     if (!user.isVerified) {
-      throw new ApiError(403, "Please verify your email before logging in. Check your inbox for the verification link.");
+      throw new ApiError(
+        403,
+        "Please verify your email before logging in. Check your inbox for the verification link."
+      );
     }
 
-    const tokens = await this.generateAccessAndRefreshToken(user);
+    const tokens = await this.generateAccessAndRefreshToken(
+      user as UserDocument
+    );
 
     return {
-      response: new ApiResponse<IUser>(200, t("OTP.OTP_VERIFIED"), user),
+      response: new ApiResponse<{
+        user: IUser;
+        tokens: { accessToken: string; refreshToken: string };
+      }>(200, t("OTP.OTP_VERIFIED"), { user, tokens }),
       tokens,
     };
   },
@@ -166,7 +217,7 @@ export const AuthService = {
 
     const tokenDoc = await VerificationTokenModel.verifyToken(
       token,
-      'email_verification'
+      "email_verification"
     );
 
     if (!tokenDoc) {
@@ -188,12 +239,15 @@ export const AuthService = {
     // Delete used token
     await VerificationTokenModel.deleteOne({ _id: tokenDoc._id });
 
-    return new ApiResponse(200, "Email verified successfully! You can now log in.");
+    return new ApiResponse(
+      200,
+      "Email verified successfully! You can now log in."
+    );
   },
 
   async resendVerification(data: ResendVerificationData) {
     const user = await UserModel.findByEmail(data.email);
-    
+
     if (!user) {
       throw new ApiError(404, t("USER.NOT_FOUND_AGAINST_EMAIL"));
     }
@@ -203,22 +257,31 @@ export const AuthService = {
     }
 
     // Generate new token
-    const verificationToken = await VerificationTokenModel.createVerificationToken(
-      user._id as mongoose.Types.ObjectId,
-      'email_verification'
-    );
+    const verificationToken =
+      await VerificationTokenModel.createVerificationToken(
+        user._id as mongoose.Types.ObjectId,
+        "email_verification"
+      );
 
     // Send verification email
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken.token}`;
-    await EmailService.sendVerificationEmail(user.email, user.name, verificationUrl);
+    const verificationUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/auth/verify-email?token=${verificationToken.token}`;
+    await QueueService.getQueue("otpQueue")?.add("sendVerificationEmail", {
+      email: user.email,
+      name: user.firstName,
+      token: verificationUrl,
+    });
 
-    return new ApiResponse(200, "Verification email sent! Please check your inbox.");
+    return new ApiResponse(
+      200,
+      "Verification email sent! Please check your inbox."
+    );
   },
 
   // Password Reset
   async forgotPassword(data: ForgotPasswordData) {
     const user = await UserModel.findByEmail(data.email);
-    
     if (!user) {
       // Don't reveal if user exists - security best practice
       return new ApiResponse(
@@ -226,16 +289,23 @@ export const AuthService = {
         "If an account exists with this email, a password reset link has been sent."
       );
     }
+    console.log("going");
 
     // Generate reset token
     const resetToken = await VerificationTokenModel.createVerificationToken(
       user._id as mongoose.Types.ObjectId,
-      'password_reset'
+      "password_reset"
     );
 
     // Send reset email
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken.token}`;
-    await EmailService.sendPasswordResetEmail(user.email, user.name, resetUrl);
+    const resetUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/auth/reset-password?token=${resetToken.token}`;
+    await QueueService.getQueue("otpQueue")?.add("sendVerificationEmail", {
+      email: user.email,
+      name: user.firstName,
+      verificationUrl: resetUrl,
+    });
 
     return new ApiResponse(
       200,
@@ -248,14 +318,14 @@ export const AuthService = {
 
     const tokenDoc = await VerificationTokenModel.verifyToken(
       token,
-      'password_reset'
+      "password_reset"
     );
 
     if (!tokenDoc) {
       throw new ApiError(400, "Invalid or expired reset token");
     }
 
-    const user = await UserModel.findById(tokenDoc.userId).select('+password');
+    const user = await UserModel.findById(tokenDoc.userId).select("+password");
     if (!user) {
       throw new ApiError(404, t("USER.NOT_FOUND"));
     }
@@ -268,7 +338,10 @@ export const AuthService = {
     // Delete used token
     await VerificationTokenModel.deleteOne({ _id: tokenDoc._id });
 
-    return new ApiResponse(200, "Password reset successful! You can now log in with your new password.");
+    return new ApiResponse(
+      200,
+      "Password reset successful! You can now log in with your new password."
+    );
   },
 
   // Logout
@@ -307,16 +380,15 @@ export const AuthService = {
     // Verify refresh token
     let decoded;
     try {
-      decoded = jwt.verify(
-        refreshToken,
-        config.JWT.refreshToken.secret
-      ) as { _id: string };
+      decoded = jwt.verify(refreshToken, config.JWT.refreshToken.secret) as {
+        _id: string;
+      };
     } catch (error) {
       throw new ApiError(401, "Invalid or expired refresh token");
     }
 
     // Find user and check if refresh token matches (cast to UserDocument)
-    const user = await UserModel.findById(decoded._id) as UserDocument | null;
+    const user = (await UserModel.findById(decoded._id)) as UserDocument | null;
     if (!user || user.refreshToken !== refreshToken) {
       throw new ApiError(401, "Invalid refresh token");
     }
@@ -332,11 +404,126 @@ export const AuthService = {
 
   // Get current user
   async getCurrentUser(userId: string) {
-    const user = await UserModel.findById(userId).populate('role');
+    const user = await UserModel.findById(userId).populate("role");
     if (!user) {
       throw new ApiError(404, t("USER.NOT_FOUND"));
     }
 
-    return new ApiResponse<IUser>(200, "User retrieved successfully", user.toObject());
+    return new ApiResponse<IUser>(
+      200,
+      "User retrieved successfully",
+      user.toObject()
+    );
+  },
+
+  // Google OAuth 2.0
+  getGoogleOAuthURL() {
+    const oauth2Client = new google.auth.OAuth2(
+      config.GOOGLE.client_id,
+      config.GOOGLE.client_secret,
+      config.GOOGLE.redirect_uri
+    );
+
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: config.GOOGLE.scopes,
+      prompt: "consent",
+    });
+
+    return authUrl;
+  },
+
+  async googleAuthCallback(code: string) {
+    // Initialize OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      config.GOOGLE.client_id,
+      config.GOOGLE.client_secret,
+      config.GOOGLE.redirect_uri
+    );
+
+    // Exchange authorization code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Get user info from Google
+    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+    const { data } = await oauth2.userinfo.get();
+
+    if (!data.email) {
+      throw new ApiError(400, "Unable to retrieve email from Google");
+    }
+
+    // Check if user exists with this Google ID
+    let user = (await UserModel.findOne({
+      googleId: data.id,
+    })) as UserDocument | null;
+
+    if (!user) {
+      // Check if user exists with this email
+      user = (await UserModel.findOne({
+        email: data.email,
+      })) as UserDocument | null;
+
+      if (user) {
+        // Link Google account to existing user
+        if (data.id) {
+          user.googleId = data.id;
+        }
+        user.isVerified = true; // Email is verified by Google
+        if (data.picture && !user.avatar) {
+          user.avatar = data.picture;
+        }
+      } else {
+        const roles = await RoleModel.find({
+          name: {
+            $in: [UserRoleEnum.TALENT_FINDER, UserRoleEnum.TALENT_SEEKER],
+          },
+        });
+
+        // 🎲 Dicebear avatar fallback if no Google picture
+        const styles = [
+          "bottts",
+          "adventurer",
+          "shapes",
+          "identicon",
+          "pixel-art",
+        ];
+        const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+        const seed = data.email || crypto.randomBytes(8).toString("hex");
+        const avatarUrl =
+          data.picture ||
+          `https://api.dicebear.com/9.x/${randomStyle}/svg?seed=${encodeURIComponent(
+            seed
+          )}`;
+
+        user = (await UserModel.create({
+          firstName: data.given_name || data.name?.split(" ")[0] || "User",
+          lastName: data.family_name || data.name?.split(" ")[1] || "",
+          email: data.email,
+          googleId: data.id,
+          avatar: avatarUrl,
+          roles: roles.map((r) => r._id),
+          isVerified: true,
+        })) as UserDocument;
+      }
+
+      await user.save();
+    }
+
+    // Update last login
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    // Generate tokens
+    const authTokens = await this.generateAccessAndRefreshToken(user);
+
+    return {
+      response: new ApiResponse<IUser>(
+        200,
+        "Google authentication successful",
+        user.toObject()
+      ),
+      tokens: authTokens,
+    };
   },
 };

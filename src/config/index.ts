@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { config } from "./env";
 
+export { config };
+
 export const connectDB = async () => {
   try {
     const mongoUri = `${config.MAIN.mongoUri}/${config.MAIN.dbName}`;

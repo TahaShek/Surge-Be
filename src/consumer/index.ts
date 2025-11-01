@@ -1,9 +1,11 @@
 import logger from "config/logger";
 import { startOtpWorker } from "./otpWorker";
 import { closeRedisConnection } from "queues/connection";
+import { startJobWorker } from "./jobWorker";
 
 (async () => {
   await startOtpWorker();
+  await startJobWorker();
   logger.info(`Worker running at process: ${process.pid}`);
 
   const gracefulShutdown = async (signal: string) => {

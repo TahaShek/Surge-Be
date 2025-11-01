@@ -1,17 +1,14 @@
 // src/socket/handlers/connection.handler.ts
 import logger from "../../config/logger";
 import { AuthenticatedSocket, SocketEvents } from "../../@types/socket.types";
-import { trackConnection, trackDisconnection, broadcastUserOnline } from "../utils/connection";
+import {
+  trackConnection,
+  trackDisconnection,
+  broadcastUserOnline,
+} from "../utils/connection";
 import { leaveAllRooms } from "../utils/room";
 import { socketErrorLoggingMiddleware } from "../middlewares/logging.middleware";
 
-/**
- * Connection event handlers for Socket.IO
- */
-
-/**
- * Handles new socket connections
- */
 export const handleConnection = (socket: AuthenticatedSocket) => {
   // Track the connection
   trackConnection(socket);
@@ -41,10 +38,10 @@ export const handleConnection = (socket: AuthenticatedSocket) => {
   });
 };
 
-/**
- * Handles socket disconnections
- */
-export const handleDisconnect = async (socket: AuthenticatedSocket, reason: string) => {
+export const handleDisconnect = async (
+  socket: AuthenticatedSocket,
+  reason: string
+) => {
   logger.info(`Socket disconnecting: ${socket.id}`, {
     userId: socket.data.userId || "anonymous",
     reason,
@@ -60,15 +57,14 @@ export const handleDisconnect = async (socket: AuthenticatedSocket, reason: stri
 
     // Track disconnection (this handles user offline broadcasting)
     trackDisconnection(socket, reason);
-
   } catch (error) {
-    logger.error(`Error during disconnect cleanup for socket ${socket.id}:`, error);
+    logger.error(
+      `Error during disconnect cleanup for socket ${socket.id}:`,
+      error
+    );
   }
 };
 
-/**
- * Handles connection errors
- */
 export const handleConnectionError = (error: Error) => {
   logger.error("Socket.IO connection error:", {
     message: error.message,
@@ -77,9 +73,6 @@ export const handleConnectionError = (error: Error) => {
   });
 };
 
-/**
- * Handles authentication event
- */
 export const handleAuthentication = async (
   socket: AuthenticatedSocket,
   token: string,
@@ -88,13 +81,13 @@ export const handleAuthentication = async (
   try {
     // Authentication logic would go here
     // For now, we'll assume the middleware handled authentication
-    
+
     if (socket.data.isAuthenticated && socket.data.user) {
       callback({
         success: true,
         user: {
           id: socket.data.userId,
-          name: socket.data.user.name,
+          firstName: socket.data.user.firstName,
           email: socket.data.user.email,
         },
       });
@@ -104,7 +97,9 @@ export const handleAuthentication = async (
         broadcastUserOnline(socket.data.userId);
       }
 
-      logger.info(`Socket ${socket.id} authenticated successfully for user ${socket.data.userId}`);
+      logger.info(
+        `Socket ${socket.id} authenticated successfully for user ${socket.data.userId}`
+      );
     } else {
       callback({
         success: false,
@@ -115,7 +110,7 @@ export const handleAuthentication = async (
     }
   } catch (error) {
     logger.error(`Authentication error for socket ${socket.id}:`, error);
-    
+
     callback({
       success: false,
       error: "Authentication error",
@@ -123,15 +118,12 @@ export const handleAuthentication = async (
   }
 };
 
-/**
- * Handles ping event
- */
 export const handlePing = (
   socket: AuthenticatedSocket,
   callback: (response: { pong: boolean; timestamp: number }) => void
 ) => {
   socket.data.lastActivity = new Date();
-  
+
   callback({
     pong: true,
     timestamp: Date.now(),

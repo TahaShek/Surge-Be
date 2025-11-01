@@ -3,4 +3,4 @@ export interface EmailJobs {
     sendOtpEmail: { email: string, otp: string };
 }
 
-export type QueueNames = "otpQueue";
+export type QueueNames = "otpQueue" | "emailQueue" | "jobQueue";

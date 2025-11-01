@@ -34,6 +34,14 @@ router.post(
 router.get("/linkedin", AuthController.linkedInAuth);
 router.get("/linkedin/callback", AuthController.linkedInAuthCallback);
 
+// Google OAuth 2.0
+router.get("/google", AuthController.googleAuth);
+router.get(
+  "/google/callback",
+  validateResource(AuthValidator.googleAuthCallbackSchema),
+  AuthController.googleAuthCallback
+);
+
 // Email Verification
 router.get(
   "/verify-email",

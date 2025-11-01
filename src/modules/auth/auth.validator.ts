@@ -3,11 +3,12 @@ import z from "zod";
 // === SCHEMAS ===
 const registerSchema = z.object({
   body: z.object({
-    name: z.string().min(1, "Name is required").max(20).trim(),
+    firstName: z.string().min(1, "First Name is required").max(20).trim(),
+    lastName: z.string().min(1, "Last Name is required").max(20).trim(),
     email: z.email(),
     password: z.string().min(6).max(20),
     age: z.number().min(12).max(100).optional(),
-    profileImage: z.string().optional(),
+    avatar: z.string().optional(),
   }),
 });
 
@@ -34,6 +35,12 @@ const verifyOtpSchema = z.object({
 const linkedInAuthCallbackSchema = z.object({
   query: z.object({
     code: z.string(),
+  }),
+});
+
+const googleAuthCallbackSchema = z.object({
+  query: z.object({
+    code: z.string().min(1, "Authorization code is required"),
   }),
 });
 
@@ -83,6 +90,9 @@ export type UserOtpData = z.infer<typeof verifyOtpSchema>["body"];
 export type LinkedInAuthCallbackQuery = z.infer<
   typeof linkedInAuthCallbackSchema
 >["query"];
+export type GoogleAuthCallbackQuery = z.infer<
+  typeof googleAuthCallbackSchema
+>["query"];
 export type VerifyEmailQuery = z.infer<typeof verifyEmailSchema>["query"];
 export type ResendVerificationData = z.infer<
   typeof resendVerificationSchema
@@ -98,6 +108,7 @@ export const AuthValidator = {
   loginWithOtpSchema,
   verifyOtpSchema,
   linkedInAuthCallbackSchema,
+  googleAuthCallbackSchema,
   verifyEmailSchema,
   resendVerificationSchema,
   forgotPasswordSchema,
