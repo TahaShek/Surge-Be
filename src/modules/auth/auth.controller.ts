@@ -1,7 +1,7 @@
 import { asyncHandler } from "utils";
 import { AuthService } from "./auth.service";
 import { config } from "config/env";
-import { LinkedInAuthCallbackQuery } from "./auth.validator";
+import { GoogleAuthCallbackQuery, LinkedInAuthCallbackQuery } from "./auth.validator";
 
 const options = {
   httpOnly: true,
@@ -54,11 +54,38 @@ export const AuthController = {
   }),
 
   linkedInAuthCallback: asyncHandler(async (req, res) => {
-    const response = await AuthService.linkedInAuthCallback(
-      req.query as LinkedInAuthCallbackQuery
-    );
+    // const response = await AuthService.linkedInAuthCallback(
+    //   req.query as LinkedInAuthCallbackQuery
+    // );
 
-    return res.status(response.status).json(response);
+    return res.status(200).json();
+  }),
+
+  // Google OAuth 2.0
+  googleAuth: asyncHandler(async (req, res) => {
+    const authUrl = AuthService.getGoogleOAuthURL();
+    return res.redirect(authUrl);
+  }),
+
+  googleAuthCallback: asyncHandler(async (req, res) => {
+    const { code } = req.query as GoogleAuthCallbackQuery;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Authorization code is required",
+      });
+    }
+
+    const { response, tokens } = await AuthService.googleAuthCallback(code);
+
+    // Set cookies and redirect to frontend with tokens
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    
+    return res
+      .cookie("accessToken", tokens.accessToken, { ...options })
+      .cookie("refreshToken", tokens.refreshToken, { ...options })
+      .redirect(`${frontendUrl}/auth/success?message=${encodeURIComponent(response.message)}`);
   }),
 
   // Email Verification

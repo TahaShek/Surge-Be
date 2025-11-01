@@ -1,31 +1,30 @@
 import logger from "config/logger";
 import nodemailer from "nodemailer";
+import { config } from "config";
 
 export const EmailService = {
-  async createTransport() {
-    const testAccount = await nodemailer.createTestAccount();
-
+  createTransport() {
+    // Use Gmail SMTP with your credentials
     const transporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure, // true for 465, false for other ports
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
+        user: config.EMAIL.user,
+        pass: config.EMAIL.password, // Use App Password, not regular password
       },
     });
 
-    logger.info(
-      `[EmailService] Using Ethereal test account ${testAccount.user}`
-    );
+    logger.info(`[EmailService] Using Gmail account ${config.EMAIL.user}`);
     return transporter;
   },
 
   async sendMail(to: string, subject: string, text: string, html?: string) {
-    const transporter = await this.createTransport();
+    const transporter = this.createTransport();
 
     const info = await transporter.sendMail({
-      from: '"Nexus Backend" <no-reply@nexus.dev>',
+      from: `"${config.EMAIL.fromName}" <${config.EMAIL.user}>`,
       to,
       subject,
       text,
@@ -33,15 +32,18 @@ export const EmailService = {
     });
 
     logger.info(`[EmailService] Message sent: ${info.messageId}`);
-    logger.info(
-      `[EmailService] Preview URL: ${nodemailer.getTestMessageUrl(info)}`
-    );
+    logger.info(`[EmailService] Email sent to: ${to}`);
   },
 
-  async sendVerificationEmail(email: string, name: string, verificationUrl: string) {
+  async sendVerificationEmail(
+    email: string,
+    name: string,
+    verificationUrl: string
+  ) {
+    logger.info(`[EmailService] Preparing verification email for ${email}`);
     const subject = "Verify Your Email - Nexus Backend";
     const text = `Hi ${name},\n\nThank you for registering! Please verify your email by clicking the link below:\n\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create this account, please ignore this email.\n\nBest regards,\nNexus Backend Team`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -86,7 +88,7 @@ export const EmailService = {
   async sendPasswordResetEmail(email: string, name: string, resetUrl: string) {
     const subject = "Reset Your Password - Nexus Backend";
     const text = `Hi ${name},\n\nWe received a request to reset your password. Click the link below to create a new password:\n\n${resetUrl}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email and your password will remain unchanged.\n\nBest regards,\nNexus Backend Team`;
-    
+
     const html = `
       <!DOCTYPE html>
       <html>

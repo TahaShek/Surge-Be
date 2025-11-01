@@ -8,11 +8,13 @@ import logger from "./config/logger";
 import { ErrorMiddleware } from "./middlewares/errorHandler";
 import { ApiResponse } from "./utils/ApiResponse";
 import { IUser } from "./@types/models/user.types";
+import { Types } from "mongoose";
 
 declare global {
   namespace Express {
     interface Request {
       user?: IUser;
+      talentFinderId: Types.ObjectId | string;
     }
   }
 }

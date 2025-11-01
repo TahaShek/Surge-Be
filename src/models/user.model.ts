@@ -12,9 +12,12 @@ import { UserRoleEnum } from "../@types/enum";
 
 const userSchema = new mongoose.Schema<IUser>(
   {
-    name: {
+    firstName: {
       type: String,
-      required: [true, "Name is required"],
+      required: [true, "First name is required"],
+    },
+    lastName: {
+      type: String,
     },
     email: {
       type: String,
@@ -25,31 +28,28 @@ const userSchema = new mongoose.Schema<IUser>(
     password: {
       type: String,
       select: false, // hide from queries by default
-      required: [true, "Password is required"],
+      required: function(this: IUser) {
+        // Password is required only if googleId is not present
+        return !this.googleId;
+      },
     },
     age: {
       type: Number,
     },
-    profileImage: {
+    avatar: {
       type: String,
+    },
+    // OAuth
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allow multiple null values
     },
     // Access
     role: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Role",
-      },
-    ],
-    permissions: [
-      {
-        action: {
-          type: String,
-          required: true,
-        },
-        subject: {
-          type: String,
-          required: true,
-        },
       },
     ],
     // Security

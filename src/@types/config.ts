@@ -34,6 +34,13 @@ export interface LinkedInConfig {
   redirect_uri: string; // if posting as a company, e.g. "urn:li:organization:123456"
 };
 
+export interface GoogleConfig {
+  client_id: string;
+  client_secret: string;
+  redirect_uri: string;
+  scopes: string[];
+}
+
 export interface SocketIOConfig {
   port?: number;
   cors: {
@@ -55,6 +62,12 @@ export interface SocketIOConfig {
   };
 }
 
+export interface EmailConfig {
+  user: string;
+  password: string;
+  fromName: string;
+}
+
 export interface AppConfig {
   MAIN: {
     port: number;
@@ -72,5 +85,7 @@ export interface AppConfig {
   REDIS: RedisConfig;
   BULLMQ: BullMQConfig;
   LINKEDIN: LinkedInConfig;
+  GOOGLE: GoogleConfig;
   SOCKETIO: SocketIOConfig;
+  EMAIL: EmailConfig;
 }

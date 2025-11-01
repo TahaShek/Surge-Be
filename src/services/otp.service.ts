@@ -41,4 +41,8 @@ export const OtpService = {
     logger.info(`[OtpService] Sending OTP ${otp} to ${email}`);
     return true;
   },
+
+  async sendTokenVerificationEmail(email: string, name: string, verificationUrl: string) {
+    await EmailService.sendVerificationEmail(email, name, verificationUrl);
+  }
 };

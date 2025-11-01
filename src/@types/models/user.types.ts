@@ -3,17 +3,16 @@ import { BaseDocument, Ref } from "./common";
 import { IRole } from "./role.type";
 
 export interface IUser extends BaseDocument {
-  name: string;
+  firstName: string;
+  lastName  : string;
   email: string;
   password?: string;
   age?: number;
-  profileImage?: string;
+  avatar?: string;
+  // OAuth
+  googleId?: string;
   // Role
   role: Ref<IRole>[];
-  permissions?: {
-    action: string;
-    subject: string;
-  }[];
   // security
   refreshToken?: string;
   isVerified?: boolean;

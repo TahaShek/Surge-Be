@@ -127,7 +127,7 @@ export const handleGetUserProfile = withAuth(async (
     // For now, return basic info
     const user = {
       id: userId,
-      name: userId === socket.data.userId ? socket.data.user?.name : "Unknown",
+      firstName: userId === socket.data.userId ? socket.data.user?.firstName : "Unknown",
       status: "online",
     };
 
@@ -153,18 +153,18 @@ export const handleGetUserProfile = withAuth(async (
  */
 export const handleUpdateProfile = withAuth(async (
   socket: AuthenticatedSocket,
-  data: { name?: string; bio?: string; avatar?: string },
+  data: { firstName?: string; bio?: string; avatar?: string },
   callback: (response: { success: boolean; user?: any; error?: string }) => void
 ) => {
   try {
     const userId = socket.data.userId!;
-    const { name, bio, avatar } = data;
+    const { firstName, bio, avatar } = data;
 
     // Validate input data
-    if (name && (name.length < 1 || name.length > 50)) {
+    if (firstName && (firstName.length < 1 || firstName.length > 50)) {
       callback({
         success: false,
-        error: "Name must be between 1 and 50 characters",
+        error: "First name must be between 1 and 50 characters",
       });
       return;
     }
@@ -186,13 +186,13 @@ export const handleUpdateProfile = withAuth(async (
 
     // Update socket data
     if (socket.data.user) {
-      if (name) socket.data.user.name = name;
+      if (firstName) socket.data.user.firstName = firstName;
       // Add bio and avatar to user type if needed
     }
 
     const updatedUser = {
       id: userId,
-      name: name || socket.data.user?.name,
+      firstName: firstName || socket.data.user?.firstName,
       bio,
       avatar,
     };
@@ -205,7 +205,7 @@ export const handleUpdateProfile = withAuth(async (
     // Broadcast user update to others
     broadcastToAll("user_updated", {
       userId,
-      name: updatedUser.name,
+      firstName: updatedUser.firstName,
       timestamp: Date.now(),
     }, userId);
 
