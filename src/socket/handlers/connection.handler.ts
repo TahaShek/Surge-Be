@@ -9,13 +9,6 @@ import {
 import { leaveAllRooms } from "../utils/room";
 import { socketErrorLoggingMiddleware } from "../middlewares/logging.middleware";
 
-/**
- * Connection event handlers for Socket.IO
- */
-
-/**
- * Handles new socket connections
- */
 export const handleConnection = (socket: AuthenticatedSocket) => {
   // Track the connection
   trackConnection(socket);
@@ -45,9 +38,6 @@ export const handleConnection = (socket: AuthenticatedSocket) => {
   });
 };
 
-/**
- * Handles socket disconnections
- */
 export const handleDisconnect = async (
   socket: AuthenticatedSocket,
   reason: string
@@ -75,9 +65,6 @@ export const handleDisconnect = async (
   }
 };
 
-/**
- * Handles connection errors
- */
 export const handleConnectionError = (error: Error) => {
   logger.error("Socket.IO connection error:", {
     message: error.message,
@@ -86,9 +73,6 @@ export const handleConnectionError = (error: Error) => {
   });
 };
 
-/**
- * Handles authentication event
- */
 export const handleAuthentication = async (
   socket: AuthenticatedSocket,
   token: string,
@@ -134,9 +118,6 @@ export const handleAuthentication = async (
   }
 };
 
-/**
- * Handles ping event
- */
 export const handlePing = (
   socket: AuthenticatedSocket,
   callback: (response: { pong: boolean; timestamp: number }) => void

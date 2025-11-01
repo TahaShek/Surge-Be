@@ -20,13 +20,6 @@ import { createEventRateLimit } from "../middlewares/rateLimit.middleware";
 // Create rate limiter for messages (max 30 messages per minute)
 const messageRateLimit = createEventRateLimit(30, 60000);
 
-/**
- * Message event handlers for Socket.IO
- */
-
-/**
- * Handles sending messages to a room
- */
 export const handleSendMessage = withAuth(
   async (
     socket: AuthenticatedSocket,
@@ -137,9 +130,6 @@ async function processSendMessage(
   }
 }
 
-/**
- * Handles typing start event
- */
 export const handleTypingStart = withAuth(
   withValidation(
     socketValidationSchemas.typing,
@@ -171,9 +161,6 @@ export const handleTypingStart = withAuth(
   )
 );
 
-/**
- * Handles typing stop event
- */
 export const handleTypingStop = withAuth(
   withValidation(
     socketValidationSchemas.typing,
@@ -205,9 +192,6 @@ export const handleTypingStop = withAuth(
   )
 );
 
-/**
- * Handles message history request
- */
 export const handleGetMessageHistory = withAuth(async (
   socket: AuthenticatedSocket,
   data: { roomId: string; limit?: number; before?: number },
