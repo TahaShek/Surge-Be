@@ -76,8 +76,10 @@ export const JobController = {
    * GET /api/jobs/:jobId
    */
   getJobById: asyncHandler(async (req: Request, res: Response) => {
-
-    const response = await JobService.getJobById(req.params.jobId, req.talentFinderId);
+    const response = await JobService.getJobById(
+      req.params.jobId,
+      req.talentFinderId
+    );
     res.status(response.status).json(response);
   }),
 
@@ -91,6 +93,49 @@ export const JobController = {
       req.user!._id.toString(),
       req.body,
       req.file // Resume file from multer
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Add job to bookmarks
+   * POST /api/jobs/:jobId/bookmark
+   */
+  addBookmark: asyncHandler(async (req, res) => {
+    const response = await JobService.addJobToBookmarks(
+      req.params.jobId,
+      req.user!._id.toString()
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Remove job from bookmarks
+   * DELETE /api/jobs/:jobId/bookmark
+   */
+  removeBookmark: asyncHandler(async (req, res) => {
+    const response = await JobService.removeJobFromBookmarks(
+      req.params.jobId,
+      req.user!._id.toString()
+    );
+    res.status(response.status).json(response);
+  }),
+
+  /**
+   * Get all bookmarked jobs
+   * GET /api/jobs/bookmarks
+   */
+  getBookmarks: asyncHandler(async (req, res) => {
+    const response = await JobService.getBookmarkedJobs(
+      req.user!._id.toString(),
+      req.query
+    );
+    res.status(response.status).json(response);
+  }),
+  getAppliedCandidates: asyncHandler(async (req, res) => {
+    const response = await JobService.getAppliedCandidates(
+      req.params.jobId,
+      req.talentFinderId
     );
     res.status(response.status).json(response);
   }),

@@ -51,7 +51,7 @@ export class CloudinaryService {
     fileName: string
   ): Promise<string> {
     const folder = `resumes/${userId}`;
-    return this.uploadFile(fileBuffer, folder, "auto", {
+    return this.uploadFile(fileBuffer, folder, "raw", {
       public_id: fileName.split(".")[0], // Use original filename without extension
     });
   }

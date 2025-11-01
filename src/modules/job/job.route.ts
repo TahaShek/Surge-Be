@@ -12,6 +12,14 @@ const router = Router();
  * NOTE: These must come BEFORE parameterized routes like /:jobId
  */
 
+// Get all bookmarked jobs
+router.get(
+  "/bookmarks",
+  verifyJWT,
+  validateResource(JobValidator.getAllJobsSchema),
+  JobController.getBookmarks
+);
+
 // Get all jobs posted by the authenticated talent finder
 router.get(
   "/my-jobs",
@@ -43,6 +51,12 @@ router.post(
   JobController.applyToJob
 );
 
+// Add job to bookmarks
+router.post("/:jobId/bookmark", verifyJWT, JobController.addBookmark);
+
+// Remove job from bookmarks
+router.delete("/:jobId/bookmark", verifyJWT, JobController.removeBookmark);
+
 /**
  * Public routes - accessible to anyone (job seekers)
  */
@@ -64,5 +78,6 @@ router.put(
 
 // Get a single job by ID (MUST be last - catches all remaining GET requests)
 router.get("/:jobId", JobController.getJobById);
+router.get("/:jobId/applied-candidates", JobController.getAppliedCandidates);
 
 export default router;

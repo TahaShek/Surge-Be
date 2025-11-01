@@ -18,6 +18,8 @@ import { JobCandidateModel } from "models/jobCandidate.model";
 import { TalentSeekerModel } from "models/talentSeeker.model";
 import { CloudinaryService } from "../../services/cloudinary.service";
 import { IJobCandidate } from "../../@types/models/jobCandidate.types";
+import { JobBookmarksModel } from "models/jobBookmarks.model";
+import { Job } from "bullmq";
 
 export const JobService = {
   async createJob(
@@ -254,6 +256,29 @@ export const JobService = {
     );
   },
 
+  async getAppliedCandidates(
+    jobId: string,
+    talentFinderId: string | Types.ObjectId
+  ) {
+    const job = await JobModel.findOne({
+      _id: jobId,
+      talentFinderId,
+    });
+    if (!job) {
+      throw new ApiError(404, "Job not found");
+    }
+    const candidates = await JobCandidateModel.find({ jobId }).populate({
+      path: "talentSeekerId",
+      select: "firstName lastName avatar",
+    });
+
+    return new ApiResponse<IJobCandidate[]>(
+      200,
+      "Candidates retrieved successfully",
+      candidates.map((c) => c.toObject())
+    );
+  },
+
   async applyToJob(
     jobId: string,
     userId: string,
@@ -333,4 +358,111 @@ export const JobService = {
       populatedApplication!.toObject()
     );
   },
+
+  async addJobToBookmarks(jobId: string, userId: string) {
+    // Find the talent seeker profile
+    const talentSeeker = await TalentSeekerModel.findOne({ userId });
+    if (!talentSeeker) {
+      throw new ApiError(
+        404,
+        "Please complete your talent seeker profile before bookmarking jobs"
+      );
+    }
+    const alreadyBookmarked = await JobBookmarksModel.findOne({
+      talentSeekrId: talentSeeker._id,
+      jobId,
+    });
+    if (alreadyBookmarked) {
+      throw new ApiError(400, "Job already bookmarked");
+    }
+
+    // Add job to bookmarks
+    await JobBookmarksModel.create({
+      jobId,
+      talentSeekrId: talentSeeker._id,
+      userId,
+    });
+
+    return new ApiResponse(201, "Job bookmarked successfully");
+  },
+
+  async removeJobFromBookmarks(jobId: string, userId: string) {
+    // Find the talent seeker profile
+    const talentSeeker = await TalentSeekerModel.findOne({ userId });
+    if (!talentSeeker) {
+      throw new ApiError(
+        404,
+        "Please complete your talent seeker profile before removing bookmarked jobs"
+      );
+    }
+
+    // Remove job from bookmarks
+    await JobBookmarksModel.findOneAndDelete({
+      talentSeekrId: talentSeeker._id,
+      jobId,
+      userId,
+    });
+
+    return new ApiResponse(200, "Job removed from bookmarks successfully");
+  },
+
+  async getBookmarkedJobs(userId: string, queryParams: GetAllJobsQuery) {
+    // Find the talent seeker profile
+    const talentSeeker = await TalentSeekerModel.findOne({ userId });
+    if (!talentSeeker) {
+      throw new ApiError(
+        404,
+        "Please complete your talent seeker profile before retrieving bookmarked jobs"
+      );
+    }
+    const { page, skip, limit } = getPagination({
+      page: queryParams.page,
+      limit: queryParams.limit,
+    });
+    const [bookmarks, total] = await Promise.all([
+      JobBookmarksModel.find({ talentSeekrId: talentSeeker._id })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: "jobId",
+        }),
+      JobBookmarksModel.countDocuments({ talentSeekrId: talentSeeker._id }),
+    ]);
+
+    return new ApiResponse<any>(200, "Bookmarked jobs retrieved successfully", {
+      bookmarks,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  },
+
+  async acceptCandidate(jobId: string, candidateId: string, talentFinderId: string) {
+    // Find the job
+    const job = await JobModel.findById(jobId);
+    if (!job) {
+      throw new ApiError(404, "Job not found");
+    }
+
+    // Find the candidate
+    const candidate = await JobCandidateModel.findById(candidateId);
+    if (!candidate) {
+      throw new ApiError(404, "Candidate not found");
+    }
+
+    // Check if the candidate applied for the job
+    if (candidate.jobId.toString() !== jobId) {
+      throw new ApiError(400, "Candidate did not apply for this job");
+    }
+
+    // Update the candidate status
+    // candidate.status = "accepted";
+    await candidate.save();
+
+    return new ApiResponse(200, "Candidate accepted successfully");
+  },
+
 };
