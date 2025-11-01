@@ -1,0 +1,52 @@
+{
+  "name": "nexus-be",
+  "version": "1.0.0",
+  "description": "skill nexus backend",
+  "main": "server.js",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "start": "node -r tsconfig-paths/register dist/server.js",
+    "dev": "nodemon",
+    "dev:worker": "nodemon --config nodemon.worker.json",
+    "prestart": "npm run build"
+  },
+  "keywords": [],
+  "author": "Fahad Khan",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.7.0",
+    "@types/nodemailer": "^7.0.2",
+    "@types/socket.io": "^3.0.1",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "bullmq": "^5.61.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "ioredis": "^5.8.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.0",
+    "morgan": "^1.10.1",
+    "nodemailer": "^7.0.9",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "tsconfig-paths": "^4.2.0",
+    "winston": "^3.18.3",
+    "zod": "^4.1.12"
+  }
+}
