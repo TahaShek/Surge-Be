@@ -7,21 +7,8 @@ import { JobValidator } from "./job.validator";
 const router = Router();
 
 /**
- * Public routes - accessible to anyone (job seekers)
- */
-
-// Get all active jobs with filters (public job search)
-router.get(
-  "/",
-  validateResource(JobValidator.getAllJobsSchema),
-  JobController.getAllJobs
-);
-
-// Get a single job by ID
-router.get("/:jobId", JobController.getJobById);
-
-/**
  * Protected routes - require authentication (talent finders/recruiters)
+ * NOTE: These must come BEFORE parameterized routes like /:jobId
  */
 
 // Get all jobs posted by the authenticated talent finder
@@ -40,6 +27,23 @@ router.post(
   JobController.createJob
 );
 
+// Publish a draft job (activate it)
+router.post("/publish/:jobId", verifyJWT, JobController.publishJob);
+
+// Delete a job
+router.delete("/delete/:jobId", verifyJWT, JobController.deleteJob);
+
+/**
+ * Public routes - accessible to anyone (job seekers)
+ */
+
+// Get all active jobs with filters (public job search)
+router.get(
+  "/",
+  validateResource(JobValidator.getAllJobsSchema),
+  JobController.getAllJobs
+);
+
 // Update an existing job
 router.put(
   "/:jobId",
@@ -48,10 +52,7 @@ router.put(
   JobController.updateJob
 );
 
-// Publish a draft job (activate it)
-router.post("/publish/:jobId", verifyJWT, JobController.publishJob);
-
-// Delete a job
-router.delete("/delete/:jobId", verifyJWT, JobController.deleteJob);
+// Get a single job by ID (MUST be last - catches all remaining GET requests)
+router.get("/:jobId", JobController.getJobById);
 
 export default router;

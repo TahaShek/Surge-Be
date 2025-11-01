@@ -81,14 +81,28 @@ const getAllJobsSchema = z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
     search: z.string().optional(),
-    jobType: z
-      .enum(["full-time", "part-time", "contract", "freelance", "internship"])
-      .optional(),
-    experienceLevel: z.enum(["entry", "mid", "senior", "lead"]).optional(),
+    jobType: z.string().optional(),
+    experienceLevel: z.string().optional(),
     location: z.string().optional(),
-    jobWorkingType: z.enum(["remote", "on-site", "hybrid"]).optional(),
+    jobWorkingType: z.string().optional(),
     salaryMin: z.string().optional(),
     salaryMax: z.string().optional(),
+    status: z
+      .string()
+      //   .optional()
+      //   .transform((val) => {
+      //     if (!val) return undefined;
+      //     // Handle comma-separated values: "active,draft" -> ["active", "draft"]
+      //     const statuses = val.split(",").map((s) => s.trim());
+      //     return statuses.length === 1 ? statuses[0] : statuses;
+      //   })
+      //   .pipe(
+      //     z.union([
+      //       z.enum(["draft", "active", "closed", "filled"]),
+      //       z.array(z.enum(["draft", "active", "closed", "filled"])),
+      //     ])
+      //   )
+      .optional(),
   }),
 });
 

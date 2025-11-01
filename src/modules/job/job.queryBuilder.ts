@@ -16,17 +16,18 @@ export class JobQueryBuilder {
     }
     return this;
   }
-
-  addJobTypeFilter(jobType?: string): this {
+  addJobTypeFilter(jobType?: string | string[]): this {
     if (jobType) {
-      this.query.jobType = jobType;
+      this.query.jobType = Array.isArray(jobType) ? { $in: jobType } : jobType;
     }
     return this;
   }
 
-  addExperienceLevelFilter(experienceLevel?: string): this {
+  addExperienceLevelFilter(experienceLevel?: string | string[]): this {
     if (experienceLevel) {
-      this.query.experienceLevel = experienceLevel;
+      this.query.experienceLevel = Array.isArray(experienceLevel)
+        ? { $in: experienceLevel }
+        : experienceLevel;
     }
     return this;
   }
@@ -37,9 +38,11 @@ export class JobQueryBuilder {
     return this;
   }
 
-  addWorkingTypeFilter(jobWorkingType?: string): this {
+  addWorkingTypeFilter(jobWorkingType?: string | string[]): this {
     if (jobWorkingType) {
-      this.query.jobWorkingType = jobWorkingType;
+      this.query.jobWorkingType = Array.isArray(jobWorkingType)
+        ? { $in: jobWorkingType }
+        : jobWorkingType;
     }
     return this;
   }
@@ -73,7 +76,7 @@ export class JobQueryBuilder {
         this.query.status = status;
       }
     } else {
-      this.query.status = "active";
+      this.query.status = "";
     }
     return this;
   }
@@ -144,26 +147,43 @@ export function buildJobQuery(
 ): FilterQuery<IJob> {
   const builder = new JobQueryBuilder();
 
-  // Add filters based on query params
+  const splitCommaSeparated = (value?: string | string[]) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return value
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  };
+
+  // Normalize multi-value params
+  const jobTypes = splitCommaSeparated(queryParams.jobType);
+  const experienceLevels = splitCommaSeparated(queryParams.experienceLevel);
+  const workingTypes = splitCommaSeparated(queryParams.jobWorkingType);
+  const statuses = splitCommaSeparated(queryParams.status);
+
+  // Apply filters
   builder
     .addSearchFilter(queryParams.search)
-    .addJobTypeFilter(queryParams.jobType)
-    .addExperienceLevelFilter(queryParams.experienceLevel)
+    .addJobTypeFilter(jobTypes)
+    .addExperienceLevelFilter(experienceLevels)
     .addLocationFilter(queryParams.location)
-    .addWorkingTypeFilter(queryParams.jobWorkingType)
+    .addWorkingTypeFilter(workingTypes)
     .addSalaryFilter(queryParams.salaryMin, queryParams.salaryMax);
 
-  // Add optional filters from options
+  // Optional filters
   if (options?.talentFinderId) {
     builder.addTalentFinderFilter(options.talentFinderId);
   }
 
-  if (options?.defaultStatus !== undefined) {
+  // Handle status
+  if (statuses && statuses.length > 0) {
+    builder.addStatusFilter(statuses);
+  } else if (options?.defaultStatus) {
     builder.addStatusFilter(options.defaultStatus);
-  } else {
-    builder.addStatusFilter(); // Default to active
   }
 
+  // Deadline (expired jobs)
   if (!options?.includeExpired) {
     builder.addDeadlineFilter(false);
   }
