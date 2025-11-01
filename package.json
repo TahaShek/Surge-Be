@@ -4,7 +4,7 @@
   "description": "skill nexus backend",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node dist/consumer/index.js",
     "build": "echo 'Skipping TypeScript build on Render — using prebuilt dist folder.'"
   },
   "keywords": [],
