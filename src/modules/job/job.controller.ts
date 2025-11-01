@@ -172,4 +172,10 @@ export const JobController = {
     );
     res.status(response.status).json(response);
   }),
+  getMyApplications: asyncHandler(async (req, res) => {
+    const response = await JobService.getMyApplications(
+      req.user?._id
+    );
+    res.status(response.status).json(response);
+  }),
 };

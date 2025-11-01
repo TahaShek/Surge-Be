@@ -13,7 +13,7 @@ import { Types } from "mongoose";
 declare global {
   namespace Express {
     interface Request {
-      user?: IUser;
+      user: IUser;
       talentFinderId: Types.ObjectId | string;
       talentSeekerId: Types.ObjectId | string;
     }

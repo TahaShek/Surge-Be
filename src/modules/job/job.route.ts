@@ -12,6 +12,7 @@ const router = Router();
  * NOTE: These must come BEFORE parameterized routes like /:jobId
  */
 
+router.get("/my-applications", verifyJWT, JobController.getMyApplications);
 // Get recommended jobs for talent seeker
 router.get(
   "/recommendations",

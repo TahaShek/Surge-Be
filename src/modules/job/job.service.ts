@@ -19,6 +19,7 @@ import { TalentSeekerModel } from "models/talentSeeker.model";
 import { CloudinaryService } from "../../services/cloudinary.service";
 import { IJobCandidate } from "../../@types/models/jobCandidate.types";
 import { JobBookmarksModel } from "models/jobBookmarks.model";
+import aiService from "../../services/ai.service";
 
 export const JobService = {
   async createJob(
@@ -708,6 +709,15 @@ export const JobService = {
     else if (matchPercentage >= 65) matchLevel = "Good Match";
     else if (matchPercentage >= 50) matchLevel = "Fair Match";
 
+    // Generate AI-powered insights
+    const aiInsights = await aiService.generateMatchInsights({
+      matchPercentage,
+      matchLevel,
+      matchDetails,
+      jobTitle: job.title,
+      talentSeekerSkills: talentSeeker.skills || [],
+    });
+
     return new ApiResponse(200, "Match score calculated successfully", {
       matchPercentage,
       matchLevel,
@@ -722,6 +732,7 @@ export const JobService = {
         skills: job.skills,
         salary: job.salary,
       },
+      aiInsights,
       recommendations: generateRecommendations(matchPercentage, matchDetails),
     });
   },
@@ -832,6 +843,39 @@ export const JobService = {
     // Sort by match score
     jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
 
+    // Calculate average match score and top skills
+    const avgMatchScore =
+      jobsWithScores.length > 0
+        ? Math.round(
+            jobsWithScores.reduce((sum, job) => sum + job.matchScore, 0) /
+              jobsWithScores.length
+          )
+        : 0;
+
+    // Extract top skills from recommended jobs
+    const skillFrequency: Record<string, number> = {};
+    jobsWithScores.forEach((job) => {
+      job.skills?.forEach((skill: string) => {
+        skillFrequency[skill] = (skillFrequency[skill] || 0) + 1;
+      });
+    });
+    const topSkills = Object.entries(skillFrequency)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([skill]) => skill);
+
+    // Generate AI-powered summary
+    const aiSummary = await aiService.generateRecommendationSummary({
+      totalJobs: total,
+      topSkills,
+      avgMatchScore,
+      talentSeekerProfile: {
+        skills: talentSeeker.skills,
+        experience: talentSeeker.experience,
+        preferredJobTypes: talentSeeker.preferredJobTypes,
+      },
+    });
+
     return new ApiResponse(200, "Recommended jobs retrieved successfully", {
       jobs: jobsWithScores,
       pagination: {
@@ -839,6 +883,11 @@ export const JobService = {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+      },
+      aiSummary,
+      insights: {
+        avgMatchScore,
+        topSkills,
       },
       profileSummary: {
         skills: talentSeeker.skills,
@@ -848,6 +897,17 @@ export const JobService = {
         isOpenToRemote: talentSeeker.isOpenToRemote,
       },
     });
+  },
+
+  async getMyApplications(userId: string | Types.ObjectId) {
+    const jobCandidate = await JobCandidateModel.find({ userId }).populate(
+      "jobId"
+    );
+    return new ApiResponse(
+      200,
+      "Applications retrieved successfully",
+      jobCandidate
+    );
   },
 };
 

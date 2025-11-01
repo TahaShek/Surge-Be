@@ -74,6 +74,10 @@ export interface CloudinaryConfig {
   api_secret: string;
 }
 
+export interface GeminiConfig {
+  api_key: string;
+}
+
 export interface AppConfig {
   MAIN: {
     port: number;
@@ -95,4 +99,5 @@ export interface AppConfig {
   SOCKETIO: SocketIOConfig;
   EMAIL: EmailConfig;
   CLOUDINARY: CloudinaryConfig;
+  GEMINI: GeminiConfig;
 }
