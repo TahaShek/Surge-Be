@@ -11,27 +11,34 @@ import { getRedisConnection } from "../queues/connection";
  */
 export const createSocketServer = async (httpServer: HTTPServer): Promise<SocketIOServer> => {
   const socketConfig: Partial<ServerOptions> = {
-    // CORS configuration for cross-origin requests
-    cors: config.SOCKETIO.cors,
-    
+    // ✅ CORS configuration for your FRONTEND
+    cors: {
+      origin: [
+        "http://localhost:5173", // Local development (Vite frontend)
+        "http://192.168.1.8:5173", // Local network access (mobile/tablet testing)
+      ],
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+
     // Connection settings for reliability
-    pingTimeout: config.SOCKETIO.connection.pingTimeout,
-    pingInterval: config.SOCKETIO.connection.pingInterval,
-    maxHttpBufferSize: config.SOCKETIO.connection.maxPayload,
-    
+    pingTimeout: config.SOCKETIO.connection?.pingTimeout || 60000,
+    pingInterval: config.SOCKETIO.connection?.pingInterval || 25000,
+    maxHttpBufferSize: config.SOCKETIO.connection?.maxPayload || 1e6,
+
     // Allow upgrades from polling to WebSocket
     allowUpgrades: true,
-    
+
     // Transports priority (WebSocket preferred)
     transports: ["websocket", "polling"],
-    
+
     // Allow EIO3 for compatibility
     allowEIO3: true,
-    
-    // HTTP long-polling options
+
+    // HTTP compression enabled
     httpCompression: true,
-    
-    // Cookie settings
+
+    // Cookie settings for identification
     cookie: {
       name: "io",
       httpOnly: true,
@@ -41,33 +48,37 @@ export const createSocketServer = async (httpServer: HTTPServer): Promise<Socket
 
   const io = new SocketIOServer(httpServer, socketConfig);
 
-  // Set up Redis adapter for horizontal scaling if enabled
+  // 🧩 Redis adapter for horizontal scaling (optional)
   if (config.SOCKETIO.redis.enabled) {
     try {
       const redisClient = await getRedisConnection();
       const subClient = redisClient.duplicate();
-      
-      // Create Redis adapter for clustering
+
       const redisAdapter = createAdapter(redisClient, subClient, {
         key: config.SOCKETIO.redis.keyPrefix,
       });
-      
+
       io.adapter(redisAdapter);
-      
       logger.info("✅ Socket.IO Redis adapter configured for clustering");
     } catch (error) {
       logger.error("❌ Failed to configure Socket.IO Redis adapter:", error);
-      throw error;
     }
   }
 
-  // Global error handler
+  // Global connection and error handling
+  io.on("connection", (socket) => {
+    logger.info(`🟢 New socket connected: ${socket.id}`);
+
+    socket.on("disconnect", (reason) => {
+      logger.info(`🔴 Socket disconnected (${socket.id}): ${reason}`);
+    });
+  });
+
   io.on("connection_error", (error) => {
     logger.error("Socket.IO connection error:", error);
   });
 
   logger.info("✅ Socket.IO server configured successfully");
-  
   return io;
 };
 
@@ -93,16 +104,10 @@ export const setSocketServer = (server: SocketIOServer): void => {
 export const shutdownSocketServer = async (): Promise<void> => {
   if (socketServer) {
     logger.info("🛑 Shutting down Socket.IO server...");
-    
-    // Close all connections gracefully
     socketServer.close((error) => {
-      if (error) {
-        logger.error("Error during Socket.IO shutdown:", error);
-      } else {
-        logger.info("✅ Socket.IO server shut down successfully");
-      }
+      if (error) logger.error("Error during Socket.IO shutdown:", error);
+      else logger.info("✅ Socket.IO server shut down successfully");
     });
-    
     socketServer = null;
   }
 };
