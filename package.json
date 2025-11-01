@@ -2,13 +2,10 @@
   "name": "nexus-be",
   "version": "1.0.0",
   "description": "skill nexus backend",
-  "main": "server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "build": "tsc && tsc-alias",
-    "start": "node -r tsconfig-paths/register dist/server.js",
-    "dev": "nodemon",
-    "dev:worker": "nodemon --config nodemon.worker.json",
-    "prestart": "npm run build"
+    "start": "node dist/server.js",
+    "build": "echo 'Skipping TypeScript build on Render — using prebuilt dist folder.'"
   },
   "keywords": [],
   "author": "Fahad Khan",
