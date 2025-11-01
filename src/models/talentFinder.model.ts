@@ -14,7 +14,6 @@ const talentFinderSchema = new mongoose.Schema<ITalentFinder>(
     },
     company: {
       type: String,
-      required: [true, "Company name is required"],
       trim: true,
     },
     companySize: {

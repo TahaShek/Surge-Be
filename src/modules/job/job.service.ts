@@ -87,4 +87,16 @@ export const JobService = {
       job: job.toObject(),
     };
   },
+
+  async deleteJob(jobId: string) {
+    const job = await JobModel.findByIdAndDelete(jobId);
+    if (!job) {
+      throw new ApiError(404, "Job not found");
+    }
+    return new ApiResponse<IJob>(
+      200,
+      "Job deleted successfully",
+      job.toObject()
+    );
+  },
 };

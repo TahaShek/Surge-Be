@@ -4,7 +4,7 @@ import { IUser } from "./user.types";
 // Talent Finder (Company/Recruiter) - Posts jobs
 export interface ITalentFinder extends BaseDocument {
   userId: Ref<IUser>;
-  company: string;
+  company?: string;
   companySize?: string;
   industry?: string;
   website?: string;

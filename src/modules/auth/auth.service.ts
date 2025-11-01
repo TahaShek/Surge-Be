@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
-import { RoleModel, UserModel, VerificationTokenModel } from "models";
+import {
+  RoleModel,
+  TalentFinderModel,
+  TalentSeekerModel,
+  UserModel,
+  VerificationTokenModel,
+} from "models";
 import type {
   UserLoginData,
   UserLoginWithOtpData,
@@ -47,6 +53,14 @@ export const AuthService = {
       avatar: avatarUrl,
       role: roles.map((r) => r._id),
     });
+    await Promise.all([
+      TalentFinderModel.create({
+        userId: user._id,
+      }),
+      TalentSeekerModel.create({
+        userId: user._id,
+      }),
+    ]);
 
     // Generate email verification token
     const verificationToken =

@@ -13,4 +13,11 @@ router.post(
   JobController.createJob
 );
 
+router.post(
+  "/publish/:jobId",
+  verifyJWT,
+  validateResource(JobValidator.publishJobSchema),
+  JobController.publishJob
+);
+
 export default router;
